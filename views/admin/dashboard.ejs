@@ -1,0 +1,153 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="main-content">
+  <div class="container">
+    <%- include('../partials/flash') %>
+
+    <!-- Header -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title"><%= group.name %></h1>
+        <p class="page-subtitle">
+          Admin Dashboard • <%= group.villageOrArea ? group.villageOrArea + ' • ' : '' %><%= metrics.activeMemberCount %> Active Members
+        </p>
+      </div>
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <a href="/savings" class="btn btn-primary">➕ Record Savings</a>
+        <a href="/loans/admin/list" class="btn btn-accent">📋 Review Loans (<%= metrics.pendingLoanCount %>)</a>
+        <a href="/admin/members" class="btn btn-secondary">👥 Manage Members</a>
+      </div>
+    </div>
+
+    <!-- Defaulters Alert Banner if any -->
+    <% if (metrics.defaultersCount > 0) { %>
+      <div class="alert alert-error" style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <span style="font-size: 1.25rem;">🚨</span>
+          <div>
+            <strong>Attention: <%= metrics.defaultersCount %> member(s) have overdue loan instalments!</strong>
+            <div style="font-size: 0.85rem; margin-top: 0.15rem;">Please review defaulter records and follow up for micro-loan recovery.</div>
+          </div>
+        </div>
+        <a href="/admin/defaulters" class="btn btn-danger btn-sm">View Defaulters List</a>
+      </div>
+    <% } %>
+
+    <!-- Top Metrics Grid -->
+    <div class="grid-cols-4">
+      <div class="stat-card">
+        <div class="stat-icon emerald">💰</div>
+        <div>
+          <div class="stat-value">₹<%= metrics.totalGroupSavings.toLocaleString('en-IN') %></div>
+          <div class="stat-label">Total Group Savings</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon amber">🤝</div>
+        <div>
+          <div class="stat-value">₹<%= metrics.totalLoansDisbursed.toLocaleString('en-IN') %></div>
+          <div class="stat-label">Loans Disbursed</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon blue">🔄</div>
+        <div>
+          <div class="stat-value">₹<%= metrics.totalAmountRecovered.toLocaleString('en-IN') %></div>
+          <div class="stat-label">Amount Recovered</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon <%= metrics.defaultersCount > 0 ? 'rose' : 'emerald' %>">
+          <%= metrics.defaultersCount > 0 ? '⚠️' : '✅' %>
+        </div>
+        <div>
+          <div class="stat-value"><%= metrics.activeLoanCount %> <span style="font-size: 0.95rem; font-weight: 500; color: var(--text-muted);">Active</span></div>
+          <div class="stat-label"><%= metrics.defaultersCount %> Overdue Defaulter(s)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Secondary Grids: Recent Savings & Pending Loans -->
+    <div class="grid-cols-2">
+      <!-- Recent Savings -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Recent Savings Contributions</h2>
+          <a href="/savings" class="btn btn-outline-primary btn-sm">View All</a>
+        </div>
+        <% if (recentSavings && recentSavings.length > 0) { %>
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Month</th>
+                  <th>Amount</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% recentSavings.forEach(entry => { %>
+                  <tr>
+                    <td><strong><%= entry.memberId && entry.memberId.userId ? entry.memberId.userId.name : 'Unknown' %></strong></td>
+                    <td><span class="badge closed"><%= entry.month %></span></td>
+                    <td style="color: var(--success); font-weight: 700;">+₹<%= entry.amount.toLocaleString('en-IN') %></td>
+                    <td style="color: var(--text-muted); font-size: 0.8rem;"><%= dayjs(entry.date).format('DD MMM YYYY') %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <p style="color: var(--text-muted); font-size: 0.9rem; padding: 1rem 0;">No savings recorded yet. Use the "Record Savings" button to add the first contribution.</p>
+        <% } %>
+      </div>
+
+      <!-- Recent Loan Requests -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Recent Loan Applications</h2>
+          <a href="/loans/admin/list" class="btn btn-outline-primary btn-sm">View All</a>
+        </div>
+        <% if (recentLoans && recentLoans.length > 0) { %>
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Amount</th>
+                  <th>Tenure</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% recentLoans.forEach(loan => { %>
+                  <tr>
+                    <td><strong><%= loan.memberId && loan.memberId.userId ? loan.memberId.userId.name : 'Unknown' %></strong></td>
+                    <td>₹<%= loan.amountRequested.toLocaleString('en-IN') %></td>
+                    <td><%= loan.tenureMonths %> mo</td>
+                    <td>
+                      <span class="badge <%= loan.status %>"><%= loan.status %></span>
+                    </td>
+                    <td>
+                      <a href="/loans/<%= loan._id %>" class="btn btn-secondary btn-sm">Details</a>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <p style="color: var(--text-muted); font-size: 0.9rem; padding: 1rem 0;">No loan requests registered yet.</p>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>

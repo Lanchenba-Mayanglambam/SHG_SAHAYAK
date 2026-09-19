@@ -1,0 +1,171 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="main-content">
+  <div class="container">
+    <%- include('../partials/flash') %>
+
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Member Management</h1>
+        <p class="page-subtitle">Directory of members registered under <%= group.name %></p>
+      </div>
+    </div>
+
+    <div class="grid-cols-2" style="grid-template-columns: 2fr 1fr; align-items: start;">
+      <!-- Members Table -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Group Members (<%= members.length %>)</h2>
+        </div>
+
+        <% if (members && members.length > 0) { %>
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Member Name</th>
+                  <th>Contact Info</th>
+                  <th>Join Date</th>
+                  <th>Total Savings</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% members.forEach(m => { %>
+                  <tr>
+                    <td>
+                      <strong><%= m.userId ? m.userId.name : 'Unknown' %></strong>
+                    </td>
+                    <td>
+                      <div style="font-size: 0.85rem;"><%= m.userId ? m.userId.email : 'N/A' %></div>
+                      <% if (m.phone) { %>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);"><%= m.phone %></div>
+                      <% } %>
+                    </td>
+                    <td><%= dayjs(m.joinDate).format('DD MMM YYYY') %></td>
+                    <td style="color: var(--primary); font-weight: 700;">
+                      ₹<%= (m.totalSavings || 0).toLocaleString('en-IN') %>
+                    </td>
+                    <td>
+                      <span class="badge <%= m.status %>"><%= m.status %></span>
+                    </td>
+                    <td>
+                      <form action="/admin/members/<%= m._id %>/toggle" method="POST" style="display:inline;">
+                        <button
+                          type="submit"
+                          class="btn btn-sm <%= m.status === 'active' ? 'btn-secondary' : 'btn-outline-primary' %>"
+                          title="Toggle member status"
+                        >
+                          <%= m.status === 'active' ? 'Deactivate' : 'Activate' %>
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <p style="color: var(--text-muted); padding: 1.5rem 0;">No members in this group yet. Use the form on the right to add a member.</p>
+        <% } %>
+      </div>
+
+      <!-- Add Member Form -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Add New Member</h2>
+        </div>
+
+        <form action="/admin/members" method="POST" novalidate>
+          <div class="form-group">
+            <label for="name" class="form-label">Full Name</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              class="form-control"
+              placeholder="e.g. Kavita Devi"
+              value="<%= typeof formData !== 'undefined' && formData.name ? formData.name : '' %>"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="email" class="form-label">Email Address</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              class="form-control"
+              placeholder="e.g. kavita@shg.org"
+              value="<%= typeof formData !== 'undefined' && formData.email ? formData.email : '' %>"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="password" class="form-label">Temporary Password</label>
+            <div class="password-input-wrapper">
+              <input
+                type="password"
+                id="password"
+                name="password"
+                class="form-control"
+                placeholder="Leave blank for Member@123"
+                autocomplete="new-password"
+              >
+              <button
+                type="button"
+                class="btn-toggle-password"
+                data-target="password"
+                aria-label="Show password"
+                title="Show password"
+              >
+                <svg class="eye-open-icon" viewBox="0 0 24 24" width="20" height="20">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <svg class="eye-closed-icon" viewBox="0 0 24 24" width="20" height="20" style="display: none;">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+              </button>
+            </div>
+            <small class="form-text">Defaults to <code>Member@123</code> if left empty.</small>
+          </div>
+
+          <div class="form-group">
+            <label for="phone" class="form-label">Mobile Number</label>
+            <input
+              type="tel"
+              id="phone"
+              name="phone"
+              class="form-control"
+              placeholder="e.g. 9876543210"
+              value="<%= typeof formData !== 'undefined' && formData.phone ? formData.phone : '' %>"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="address" class="form-label">Address / Notes</label>
+            <textarea
+              id="address"
+              name="address"
+              class="form-control"
+              rows="2"
+              placeholder="e.g. House #14, North Ward"
+            ><%= typeof formData !== 'undefined' && formData.address ? formData.address : '' %></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">
+            Add Member to SHG
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>

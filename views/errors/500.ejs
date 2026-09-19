@@ -1,0 +1,24 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="main-content">
+  <div class="container">
+    <div class="card" style="max-width: 650px; margin: 3rem auto; text-align: center; padding: 3rem 2rem;">
+      <div style="font-size: 3.5rem; margin-bottom: 1rem;">💥</div>
+      <h1 style="font-size: 2rem; font-weight: 800; color: var(--danger); margin-bottom: 0.5rem;">Internal Server Error (500)</h1>
+      <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+        <%= message || 'An unexpected error occurred while processing your request.' %>
+      </p>
+
+      <% if (typeof error !== 'undefined' && error && error.stack) { %>
+        <div style="text-align: left; background: #0f172a; color: #38bdf8; padding: 1rem; border-radius: var(--radius-md); font-family: monospace; font-size: 0.8rem; overflow-x: auto; margin-bottom: 1.5rem;">
+          <pre><%= error.stack %></pre>
+        </div>
+      <% } %>
+
+      <a href="/dashboard" class="btn btn-primary">Return to Dashboard</a>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>

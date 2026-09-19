@@ -1,0 +1,71 @@
+<header class="navbar">
+  <div class="container navbar-container">
+    <a href="/dashboard" class="navbar-brand">
+      <div class="brand-icon">🌱</div>
+      <span>SHG Tracker</span>
+    </a>
+
+    <nav>
+      <ul class="navbar-nav">
+        <% if (currentUser) { %>
+          <li class="nav-item">
+            <a href="/dashboard" class="nav-link <%= currentPath === '/dashboard' ? 'active' : '' %>">Dashboard</a>
+          </li>
+
+          <% if (currentUser.role === 'admin') { %>
+            <li class="nav-item">
+              <a href="/savings" class="nav-link <%= currentPath.startsWith('/savings') ? 'active' : '' %>">Record Savings</a>
+            </li>
+            <li class="nav-item">
+              <a href="/admin/payments" class="nav-link <%= currentPath.startsWith('/admin/payments') ? 'active' : '' %>">
+                Payment Verifications
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="/loans/admin/list" class="nav-link <%= currentPath.startsWith('/loans/admin') ? 'active' : '' %>">Loan Approvals</a>
+            </li>
+            <li class="nav-item">
+              <a href="/admin/members" class="nav-link <%= currentPath === '/admin/members' ? 'active' : '' %>">Members</a>
+            </li>
+            <li class="nav-item">
+              <a href="/admin/defaulters" class="nav-link <%= currentPath === '/admin/defaulters' ? 'active' : '' %>">Defaulters</a>
+            </li>
+            <li class="nav-item">
+              <a href="/admin/group" class="nav-link <%= currentPath === '/admin/group' ? 'active' : '' %>">Group Settings</a>
+            </li>
+          <% } else if (currentUser.role === 'member') { %>
+            <li class="nav-item">
+              <a href="/member/passbook" class="nav-link <%= currentPath === '/member/passbook' ? 'active' : '' %>">Savings Passbook</a>
+            </li>
+            <li class="nav-item">
+              <a href="/member/loans" class="nav-link <%= currentPath === '/member/loans' ? 'active' : '' %>">My Loans</a>
+            </li>
+            <li class="nav-item">
+              <a href="/loans/request" class="nav-link <%= currentPath === '/loans/request' ? 'active' : '' %>">Request Loan</a>
+            </li>
+          <% } %>
+
+          <li class="nav-item" style="margin-left: 0.75rem;">
+            <div class="user-badge">
+              <span><%= currentUser.name %></span>
+              <span class="role-pill <%= currentUser.role %>"><%= currentUser.role %></span>
+            </div>
+          </li>
+
+          <li class="nav-item">
+            <form action="/logout" method="POST" style="display: inline;">
+              <button type="submit" class="btn btn-secondary btn-sm" style="border-radius: var(--radius-full);">Logout</button>
+            </form>
+          </li>
+        <% } else { %>
+          <li class="nav-item">
+            <a href="/login" class="nav-link <%= currentPath === '/login' ? 'active' : '' %>">Login</a>
+          </li>
+          <li class="nav-item">
+            <a href="/register" class="btn btn-primary btn-sm">Register</a>
+          </li>
+        <% } %>
+      </ul>
+    </nav>
+  </div>
+</header>

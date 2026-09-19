@@ -1,0 +1,153 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="main-content">
+  <div class="container">
+    <%- include('../partials/flash') %>
+
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">SHG Group Configuration</h1>
+        <p class="page-subtitle">Configure operational rules and policies for <%= group.name %></p>
+      </div>
+    </div>
+
+    <div class="card" style="max-width: 640px; margin: 0 auto;">
+      <form action="/admin/group" method="POST" novalidate>
+        <div class="form-group">
+          <label for="name" class="form-label">SHG Group Name</label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            class="form-control"
+            value="<%= group.name %>"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="villageOrArea" class="form-label">Village / Location / Panchayat</label>
+          <input
+            type="text"
+            id="villageOrArea"
+            name="villageOrArea"
+            class="form-control"
+            value="<%= group.villageOrArea || '' %>"
+            placeholder="e.g. Rampur Gram Panchayat"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="defaultInterestRate" class="form-label">Default Annual Interest Rate (%)</label>
+          <input
+            type="number"
+            step="0.1"
+            min="0"
+            max="100"
+            id="defaultInterestRate"
+            name="defaultInterestRate"
+            class="form-control"
+            value="<%= group.defaultInterestRate || 12 %>"
+            required
+          >
+          <small class="form-text">Simple annual interest rate applied to disbursed micro-loans (e.g., 12% p.a. = 1% per month).</small>
+        </div>
+
+        <div class="form-group">
+          <label for="monthlyContribution" class="form-label">Standard Monthly Savings Contribution (₹)</label>
+          <input
+            type="number"
+            step="10"
+            min="10"
+            id="monthlyContribution"
+            name="monthlyContribution"
+            class="form-control"
+            value="<%= group.monthlyContribution || 500 %>"
+            required
+          >
+          <small class="form-text">Expected monthly deposit per member into the group corpus.</small>
+        </div>
+
+        <div style="margin: 2rem 0 1rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
+          <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+            📱 Online UPI Payment Configuration
+          </h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+            Configure the digital UPI payment details that members will use to pay loan instalments and contributions online.
+          </p>
+
+          <div class="form-group" style="background: var(--bg-subtle); padding: 0.85rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--border);">
+            <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; font-weight: 600; margin-bottom: 0;">
+              <input
+                type="checkbox"
+                name="isOnlinePaymentEnabled"
+                id="isOnlinePaymentEnabled"
+                style="width: 1.2rem; height: 1.2rem; cursor: pointer;"
+                <%= group.isOnlinePaymentEnabled ? 'checked' : '' %>
+              >
+              <span>Enable Online UPI Payments for Members</span>
+            </label>
+            <small class="form-text" style="margin-top: 0.35rem; display: block;">
+              When checked, members will see "Pay via UPI" buttons with dynamic QR codes on their dashboard and loan schedules.
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label for="upiId" class="form-label">Group UPI ID / VPA</label>
+            <input
+              type="text"
+              id="upiId"
+              name="upiId"
+              class="form-control"
+              value="<%= group.upiId || 'mahilashakti@upi' %>"
+              placeholder="e.g. 9876543210@upi, groupname@sbi, or admin@okhdfcbank"
+              required
+            >
+            <small class="form-text">Virtual Payment Address (VPA) where member payments will be received.</small>
+          </div>
+
+          <div class="form-group">
+            <label for="upiPayeeName" class="form-label">Payee / Account Name</label>
+            <input
+              type="text"
+              id="upiPayeeName"
+              name="upiPayeeName"
+              class="form-control"
+              value="<%= group.upiPayeeName || group.name %>"
+              placeholder="e.g. Mahila Shakti SHG or Sunita Devi (President)"
+            >
+            <small class="form-text">Beneficiary name registered with the UPI bank account.</small>
+          </div>
+
+          <div class="form-group">
+            <label for="paymentInstructions" class="form-label">Member Payment Instructions</label>
+            <textarea
+              id="paymentInstructions"
+              name="paymentInstructions"
+              class="form-control"
+              rows="3"
+              placeholder="Enter instructions for members when making UPI payment"
+            ><%= group.paymentInstructions || 'Scan using any UPI app (Google Pay, PhonePe, Paytm, BHIM). After completing the payment, please enter the 12-digit UPI UTR / Reference number below to confirm.' %></textarea>
+            <small class="form-text">Guidance displayed to members inside the online payment dialog.</small>
+          </div>
+
+          <!-- Live Preview Box -->
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 1rem; border-radius: var(--radius-md); font-size: 0.85rem; margin-top: 1rem;">
+            <div style="font-weight: 700; color: #166534; margin-bottom: 0.25rem;">✨ Member Preview Notice:</div>
+            <div style="color: #15803d;">
+              Members will see: <strong>UPI ID:</strong> <code><%= group.upiId || 'mahilashakti@upi' %></code> • <strong>Payee:</strong> <%= group.upiPayeeName || group.name %>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+          <a href="/dashboard" class="btn btn-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>

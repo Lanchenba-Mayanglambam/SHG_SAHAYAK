@@ -1,0 +1,476 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="main-content">
+  <div class="container">
+    <%- include('../partials/flash') %>
+
+    <div class="page-header" style="margin-bottom: 2rem;">
+      <div>
+        <h1 class="page-title" style="display: flex; align-items: center; gap: 0.65rem;">
+          <span>📱</span>
+          <span>Online Payment Verifications</span>
+        </h1>
+        <p class="page-subtitle">
+          Verify member online UPI submissions against your SHG bank account statements. Mark as <strong>Paid</strong> to credit or <strong>Failed</strong> to reject.
+        </p>
+      </div>
+      <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <a href="/admin/group" class="btn btn-outline-primary btn-sm">⚙️ UPI Settings</a>
+        <a href="/savings" class="btn btn-outline-secondary btn-sm">💰 Record Cash Savings</a>
+      </div>
+    </div>
+
+    <!-- Summary Stat Cards -->
+    <div class="grid-cols-4" style="margin-bottom: 2rem;">
+      <div class="stat-card">
+        <div class="stat-icon amber">⏳</div>
+        <div>
+          <div class="stat-value" style="color: var(--warning);"><%= totalPending %></div>
+          <div class="stat-label">Pending Verification</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon emerald">✓</div>
+        <div>
+          <div class="stat-value" style="color: var(--success);"><%= totalVerifiedCount %></div>
+          <div class="stat-label">Total Verified (Paid)</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon rose">✗</div>
+        <div>
+          <div class="stat-value" style="color: var(--danger);"><%= totalFailedCount %></div>
+          <div class="stat-label">Failed / Rejected</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon blue">🏦</div>
+        <div>
+          <div class="stat-value" style="font-size: 1.1rem; font-family: monospace;"><%= group.upiId %></div>
+          <div class="stat-label">SHG Receiving UPI ID</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1. Pending Loan Repayments Section -->
+    <div class="card" style="margin-bottom: 2.5rem;">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+            <span>📋</span>
+            <span>Pending Micro-Loan Repayments</span>
+            <span class="badge <%= pendingLoanPayments.length > 0 ? 'warning' : 'success' %>" style="margin-left: 0.5rem;">
+              <%= pendingLoanPayments.length %> Pending
+            </span>
+          </h2>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem;">
+            Members have submitted UPI UTR reference numbers for these loan instalments. Verify with your bank statement.
+          </p>
+        </div>
+      </div>
+
+      <% if (pendingLoanPayments.length === 0) { %>
+        <div style="padding: 2.5rem 1.5rem; text-align: center; color: var(--text-muted);">
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">✨</div>
+          <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">No Pending Loan Verifications</h3>
+          <p style="font-size: 0.85rem;">All member UPI repayments have been reviewed and verified.</p>
+        </div>
+      <% } else { %>
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Loan Detail</th>
+                <th>Instalment</th>
+                <th>Amount Submitted</th>
+                <th>UPI Reference / UTR</th>
+                <th>Submitted On</th>
+                <th style="text-align: right;">Verification Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% pendingLoanPayments.forEach(inst => { %>
+                <tr>
+                  <td>
+                    <div style="font-weight: 700; color: var(--text-main);">
+                      <%= inst.loanId?.memberId?.userId?.name || 'Unknown Member' %>
+                    </div>
+                    <div style="font-size: 0.78rem; color: var(--text-muted);">
+                      <%= inst.loanId?.memberId?.phone || inst.loanId?.memberId?.userId?.email || '' %>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="font-size: 0.85rem;">
+                      <a href="/loans/<%= inst.loanId?._id %>" style="font-weight: 600;">
+                        <%= inst.loanId?.purpose || 'Loan' %>
+                      </a>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">
+                      Remaining: ₹<%= inst.loanId?.outstandingBalance?.toLocaleString('en-IN') %>
+                    </div>
+                  </td>
+                  <td>
+                    <span style="font-weight: 700;">#<%= inst.instalmentNumber %></span>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">
+                      Due: <%= dayjs(inst.dueDate).format('DD MMM YYYY') %>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="font-size: 1.1rem; font-weight: 800; color: var(--primary);">
+                      ₹<%= (inst.submittedAmount || inst.amountDue).toLocaleString('en-IN') %>
+                    </div>
+                    <span class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 0.72rem;">📱 UPI</span>
+                  </td>
+                  <td>
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                      <code style="font-size: 0.95rem; font-weight: 800; background: #fef3c7; color: #92400e; padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid #fde68a;">
+                        <%= inst.transactionId || 'No UTR' %>
+                      </code>
+                      <% if (inst.transactionId) { %>
+                        <button
+                          type="button"
+                          class="btn btn-outline-secondary btn-sm btn-copy-utr"
+                          data-utr="<%= inst.transactionId %>"
+                          style="padding: 0.2rem 0.45rem; font-size: 0.72rem;"
+                          title="Copy UTR"
+                        >
+                          📋
+                        </button>
+                      <% } %>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="font-size: 0.85rem; font-weight: 600;">
+                      <%= inst.submittedDate ? dayjs(inst.submittedDate).format('DD MMM YYYY') : dayjs(inst.updatedAt).format('DD MMM YYYY') %>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">
+                      <%= inst.submittedDate ? dayjs(inst.submittedDate).format('hh:mm A') : dayjs(inst.updatedAt).format('hh:mm A') %>
+                    </div>
+                  </td>
+                  <td style="text-align: right;">
+                    <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+                      <!-- Approve / Mark Paid Form -->
+                      <form method="POST" action="/admin/payments/loan/<%= inst._id %>/verify" style="display: inline;">
+                        <input type="hidden" name="decision" value="approve">
+                        <button
+                          type="submit"
+                          class="btn btn-success btn-sm"
+                          style="display: flex; align-items: center; gap: 0.35rem; font-weight: 600;"
+                          onclick="return confirm('Confirm that ₹<%= (inst.submittedAmount || inst.amountDue).toLocaleString('en-IN') %> with UTR <%= inst.transactionId %> has been received in your bank account?');"
+                        >
+                          <span>✓</span> Mark as Paid
+                        </button>
+                      </form>
+
+                      <!-- Reject / Mark Failed Trigger -->
+                      <button
+                        type="button"
+                        class="btn btn-danger btn-sm btn-open-reject"
+                        data-type="loan"
+                        data-id="<%= inst._id %>"
+                        data-name="<%= inst.loanId?.memberId?.userId?.name || 'Member' %>"
+                        data-amount="<%= (inst.submittedAmount || inst.amountDue).toLocaleString('en-IN') %>"
+                        data-utr="<%= inst.transactionId %>"
+                        style="display: flex; align-items: center; gap: 0.35rem; font-weight: 600;"
+                      >
+                        <span>✗</span> Mark as Failed
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- 2. Pending Monthly Savings Deposits Section -->
+    <div class="card" style="margin-bottom: 2.5rem;">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+            <span>💰</span>
+            <span>Pending Monthly Savings Deposits</span>
+            <span class="badge <%= pendingSavingsPayments.length > 0 ? 'warning' : 'success' %>" style="margin-left: 0.5rem;">
+              <%= pendingSavingsPayments.length %> Pending
+            </span>
+          </h2>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem;">
+            Members have deposited monthly group corpus savings via online UPI.
+          </p>
+        </div>
+      </div>
+
+      <% if (pendingSavingsPayments.length === 0) { %>
+        <div style="padding: 2.5rem 1.5rem; text-align: center; color: var(--text-muted);">
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">✨</div>
+          <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">No Pending Savings Verifications</h3>
+          <p style="font-size: 0.85rem;">All member UPI savings contributions have been reviewed and verified.</p>
+        </div>
+      <% } else { %>
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Contribution Month</th>
+                <th>Deposit Amount</th>
+                <th>UPI Reference / UTR</th>
+                <th>Submitted On</th>
+                <th style="text-align: right;">Verification Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% pendingSavingsPayments.forEach(entry => { %>
+                <tr>
+                  <td>
+                    <div style="font-weight: 700; color: var(--text-main);">
+                      <%= entry.memberId?.userId?.name || 'Unknown Member' %>
+                    </div>
+                    <div style="font-size: 0.78rem; color: var(--text-muted);">
+                      <%= entry.memberId?.phone || entry.memberId?.userId?.email || '' %>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge" style="background: var(--bg-subtle); color: var(--text-main); font-weight: 700; font-size: 0.85rem;">
+                      <%= entry.month %>
+                    </span>
+                  </td>
+                  <td>
+                    <div style="font-size: 1.1rem; font-weight: 800; color: var(--primary);">
+                      ₹<%= entry.amount.toLocaleString('en-IN') %>
+                    </div>
+                    <span class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 0.72rem;">📱 UPI</span>
+                  </td>
+                  <td>
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                      <code style="font-size: 0.95rem; font-weight: 800; background: #fef3c7; color: #92400e; padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid #fde68a;">
+                        <%= entry.transactionId || 'No UTR' %>
+                      </code>
+                      <% if (entry.transactionId) { %>
+                        <button
+                          type="button"
+                          class="btn btn-outline-secondary btn-sm btn-copy-utr"
+                          data-utr="<%= entry.transactionId %>"
+                          style="padding: 0.2rem 0.45rem; font-size: 0.72rem;"
+                          title="Copy UTR"
+                        >
+                          📋
+                        </button>
+                      <% } %>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="font-size: 0.85rem; font-weight: 600;">
+                      <%= dayjs(entry.date || entry.createdAt).format('DD MMM YYYY') %>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">
+                      <%= dayjs(entry.date || entry.createdAt).format('hh:mm A') %>
+                    </div>
+                  </td>
+                  <td style="text-align: right;">
+                    <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+                      <!-- Approve / Mark Paid Form -->
+                      <form method="POST" action="/admin/payments/savings/<%= entry._id %>/verify" style="display: inline;">
+                        <input type="hidden" name="decision" value="approve">
+                        <button
+                          type="submit"
+                          class="btn btn-success btn-sm"
+                          style="display: flex; align-items: center; gap: 0.35rem; font-weight: 600;"
+                          onclick="return confirm('Confirm that ₹<%= entry.amount.toLocaleString('en-IN') %> with UTR <%= entry.transactionId %> has been received in your bank account?');"
+                        >
+                          <span>✓</span> Mark as Paid
+                        </button>
+                      </form>
+
+                      <!-- Reject / Mark Failed Trigger -->
+                      <button
+                        type="button"
+                        class="btn btn-danger btn-sm btn-open-reject"
+                        data-type="savings"
+                        data-id="<%= entry._id %>"
+                        data-name="<%= entry.memberId?.userId?.name || 'Member' %>"
+                        data-amount="<%= entry.amount.toLocaleString('en-IN') %>"
+                        data-utr="<%= entry.transactionId %>"
+                        style="display: flex; align-items: center; gap: 0.35rem; font-weight: 600;"
+                      >
+                        <span>✗</span> Mark as Failed
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- 3. Verification Audit History Section -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+          <span>📜</span>
+          <span>Recent Verification History & Audit Trail</span>
+        </h2>
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem;">
+          Record of payments marked as Paid or Failed by administrators.
+        </p>
+      </div>
+
+      <% if (combinedHistory.length === 0) { %>
+        <p style="color: var(--text-muted); padding: 1.5rem 0;">No verification history recorded yet.</p>
+      <% } else { %>
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Member</th>
+                <th>Reference</th>
+                <th>Amount</th>
+                <th>UTR / Ref</th>
+                <th>Decision</th>
+                <th>Admin Remark / Reason</th>
+                <th>Reviewed On</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% combinedHistory.forEach(item => { %>
+                <tr>
+                  <td>
+                    <span class="badge" style="background: var(--bg-subtle); color: var(--text-main); font-size: 0.75rem;">
+                      <%= item.type %>
+                    </span>
+                  </td>
+                  <td>
+                    <strong><%= item.memberName %></strong>
+                  </td>
+                  <td style="font-size: 0.85rem; color: var(--text-muted);">
+                    <%= item.reference %>
+                  </td>
+                  <td style="font-weight: 700;">
+                    ₹<%= item.amount.toLocaleString('en-IN') %>
+                  </td>
+                  <td>
+                    <code style="font-size: 0.85rem;"><%= item.transactionId %></code>
+                  </td>
+                  <td>
+                    <% if (item.status === 'paid') { %>
+                      <span class="badge success" style="font-weight: 700;">✓ PAID</span>
+                    <% } else { %>
+                      <span class="badge danger" style="font-weight: 700;">✗ FAILED</span>
+                    <% } %>
+                  </td>
+                  <td style="font-size: 0.82rem; color: var(--text-muted); max-width: 200px;">
+                    <%= item.remark || '—' %>
+                  </td>
+                  <td style="font-size: 0.82rem;">
+                    <%= item.verifiedDate ? dayjs(item.verifiedDate).format('DD MMM YYYY, hh:mm A') : '—' %>
+                    <div style="font-size: 0.72rem; color: var(--text-muted);">By <%= item.verifiedBy %></div>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</main>
+
+<!-- Rejection Reason Modal -->
+<dialog id="rejectPaymentDialog" style="max-width: 480px; width: 92%;">
+  <div class="card-header" style="border: none; padding-bottom: 0;">
+    <h3 class="card-title" style="color: var(--danger); display: flex; align-items: center; gap: 0.5rem;">
+      <span>⚠️</span> Mark Payment as Failed
+    </h3>
+    <button type="button" id="closeRejectDialog" style="background: none; border: none; font-size: 1.25rem; cursor: pointer;">✕</button>
+  </div>
+
+  <div style="background: var(--danger-bg); border: 1px solid var(--danger-border); padding: 0.85rem; border-radius: var(--radius-md); margin: 1rem 0; font-size: 0.85rem;">
+    <div><strong>Member:</strong> <span id="rejectModalMemberName"></span></div>
+    <div><strong>Amount:</strong> ₹<span id="rejectModalAmount"></span></div>
+    <div><strong>Submitted UTR:</strong> <code id="rejectModalUtr"></code></div>
+  </div>
+
+  <form id="rejectPaymentForm" method="POST" action="">
+    <input type="hidden" name="decision" value="reject">
+
+    <div class="form-group">
+      <label for="rejectRemarkInput" class="form-label">Failure / Rejection Reason <span style="color: var(--danger);">*</span></label>
+      <input
+        type="text"
+        id="rejectRemarkInput"
+        name="remark"
+        class="form-control"
+        placeholder="e.g. UTR not found in bank account statement"
+        required
+      >
+      <small class="form-text">This note will be shown to the member so they can check their payment app and resubmit.</small>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+      <button type="button" id="cancelRejectDialog" class="btn btn-secondary">Cancel</button>
+      <button type="submit" class="btn btn-danger">✗ Confirm & Mark as Failed</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // 1. Copy UTR buttons
+    document.querySelectorAll('.btn-copy-utr').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const utr = btn.dataset.utr;
+        if (utr) {
+          navigator.clipboard.writeText(utr).then(() => {
+            const orig = btn.textContent;
+            btn.textContent = '✓';
+            setTimeout(() => { btn.textContent = orig; }, 1500);
+          });
+        }
+      });
+    });
+
+    // 2. Reject Modal Handler
+    const rejectDialog = document.getElementById('rejectPaymentDialog');
+    const rejectForm = document.getElementById('rejectPaymentForm');
+    const closeRejectBtn = document.getElementById('closeRejectDialog');
+    const cancelRejectBtn = document.getElementById('cancelRejectDialog');
+
+    document.querySelectorAll('.btn-open-reject').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const type = btn.dataset.type;
+        const id = btn.dataset.id;
+        const name = btn.dataset.name;
+        const amount = btn.dataset.amount;
+        const utr = btn.dataset.utr;
+
+        document.getElementById('rejectModalMemberName').textContent = name;
+        document.getElementById('rejectModalAmount').textContent = amount;
+        document.getElementById('rejectModalUtr').textContent = utr || 'None';
+
+        if (type === 'loan') {
+          rejectForm.action = `/admin/payments/loan/${id}/verify`;
+        } else {
+          rejectForm.action = `/admin/payments/savings/${id}/verify`;
+        }
+
+        document.getElementById('rejectRemarkInput').value = 'UTR not found in bank statement';
+        rejectDialog.showModal();
+      });
+    });
+
+    if (closeRejectBtn) closeRejectBtn.addEventListener('click', () => rejectDialog.close());
+    if (cancelRejectBtn) cancelRejectBtn.addEventListener('click', () => rejectDialog.close());
+  });
+</script>
+
+<%- include('../partials/footer') %>

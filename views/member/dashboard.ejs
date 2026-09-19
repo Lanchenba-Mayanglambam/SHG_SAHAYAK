@@ -1,0 +1,166 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="main-content">
+  <div class="container">
+    <%- include('../partials/flash') %>
+
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Welcome, <%= currentUser.name %></h1>
+        <p class="page-subtitle">Member Dashboard • <%= group ? group.name : 'SHG Group' %></p>
+      </div>
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <a href="/member/passbook" class="btn btn-primary">📖 Savings Passbook</a>
+        <a href="/loans/request" class="btn btn-accent">🌱 Apply for Micro-Loan</a>
+      </div>
+    </div>
+
+    <!-- Member Top Metrics -->
+    <div class="grid-cols-4">
+      <div class="stat-card">
+        <div class="stat-icon emerald">💰</div>
+        <div>
+          <div class="stat-value">₹<%= totalSavings.toLocaleString('en-IN') %></div>
+          <div class="stat-label">My Total Savings</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon amber">📋</div>
+        <div>
+          <div class="stat-value">
+            <%= activeLoan ? `₹${activeLoan.outstandingBalance.toLocaleString('en-IN')}` : '₹0' %>
+          </div>
+          <div class="stat-label">Loan Balance Remaining</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon <%= nextInstalment && nextInstalment.status === 'overdue' ? 'rose' : 'blue' %>">
+          <%= nextInstalment && nextInstalment.status === 'overdue' ? '⚠️' : '🗓️' %>
+        </div>
+        <div>
+          <div class="stat-value" style="font-size: 1.35rem;">
+            <%= nextInstalment ? `₹${nextInstalment.amountDue.toLocaleString('en-IN')}` : 'None Due' %>
+          </div>
+          <div class="stat-label">
+            <%= nextInstalment ? `Due on ${dayjs(nextInstalment.dueDate).format('DD MMM')}` : 'Next Instalment' %>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon emerald">🛡️</div>
+        <div>
+          <div class="stat-value" style="font-size: 1.35rem; color: var(--success);"><%= member.status %></div>
+          <div class="stat-label">Membership Status</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Loan Banner / Card -->
+    <% if (activeLoan) { %>
+      <div class="card" style="margin-bottom: 2rem; border-left: 5px solid var(--primary);">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Active Micro-Loan: <code>#<%= activeLoan._id.toString().slice(-6).toUpperCase() %></code></h2>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
+              Purpose: <strong><%= activeLoan.purpose %></strong> • Approved on <%= dayjs(activeLoan.approvedDate).format('DD MMMM YYYY') %>
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <% if (nextInstalment && group && group.isOnlinePaymentEnabled) { %>
+              <a href="/loans/<%= activeLoan._id %>" class="btn btn-primary btn-sm">📱 Pay ₹<%= nextInstalment.amountDue.toLocaleString('en-IN') %> via UPI</a>
+            <% } %>
+            <a href="/loans/<%= activeLoan._id %>" class="btn btn-outline-primary btn-sm">View Schedule</a>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Principal Disbursed</div>
+            <div style="font-size: 1.2rem; font-weight: 700;">₹<%= activeLoan.amountRequested.toLocaleString('en-IN') %></div>
+          </div>
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Interest Rate</div>
+            <div style="font-size: 1.2rem; font-weight: 700;"><%= activeLoan.interestRate %>% p.a.</div>
+          </div>
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Total Payable</div>
+            <div style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">₹<%= activeLoan.totalPayable.toLocaleString('en-IN') %></div>
+          </div>
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Remaining Balance</div>
+            <div style="font-size: 1.2rem; font-weight: 700; color: <%= activeLoan.outstandingBalance > 0 ? 'var(--danger)' : 'var(--success)' %>;">
+              ₹<%= activeLoan.outstandingBalance.toLocaleString('en-IN') %>
+            </div>
+          </div>
+        </div>
+
+        <% if (instalmentStats) { %>
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.35rem; flex-wrap: wrap; gap: 0.5rem;">
+            <span>Repaid: <%= instalmentStats.paidCount %> of <%= instalmentStats.totalInstalments %> instalments (<%= instalmentStats.percentComplete %>%)</span>
+            <% if (nextInstalment) { %>
+              <span>
+                Next Due: <strong style="<%= nextInstalment.status === 'overdue' ? 'color: var(--danger);' : '' %>">₹<%= nextInstalment.amountDue.toLocaleString('en-IN') %></strong> on <%= dayjs(nextInstalment.dueDate).format('DD MMM YYYY') %>
+                <% if (nextInstalment.status === 'overdue') { %>
+                  <span class="badge overdue" style="margin-left: 4px;">Overdue</span>
+                <% } %>
+              </span>
+            <% } %>
+          </div>
+          <div class="progress-container">
+            <div class="progress-bar" style="width: <%= instalmentStats.percentComplete %>%;"></div>
+          </div>
+        <% } %>
+      </div>
+    <% } else if (pendingLoan) { %>
+      <div class="alert alert-warning" style="margin-bottom: 2rem;">
+        <span>⏳</span>
+        <div>
+          <strong>Loan Application in Progress:</strong> Your micro-loan request for ₹<%= pendingLoan.amountRequested.toLocaleString('en-IN') %> (<%= pendingLoan.purpose %>) is awaiting administrator approval.
+        </div>
+      </div>
+    <% } %>
+
+    <!-- Recent Passbook Contributions -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Recent Savings Contributions</h2>
+        <a href="/member/passbook" class="btn btn-outline-primary btn-sm">Full Passbook</a>
+      </div>
+
+      <% if (recentDeposits && recentDeposits.length > 0) { %>
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>Deposit Amount</th>
+                <th>Recorded Date</th>
+                <th>Recorded By</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% recentDeposits.forEach(dep => { %>
+                <tr>
+                  <td><span class="badge closed"><%= dep.month %></span></td>
+                  <td style="color: var(--success); font-weight: 700;">+₹<%= dep.amount.toLocaleString('en-IN') %></td>
+                  <td><%= dayjs(dep.date).format('DD MMM YYYY') %></td>
+                  <td><%= dep.recordedBy ? dep.recordedBy.name : 'Admin' %></td>
+                  <td style="color: var(--text-muted); font-size: 0.85rem;"><%= dep.notes || '-' %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <p style="color: var(--text-muted); padding: 1.5rem 0;">No savings deposits recorded yet. Monthly contributions made at SHG meetings will appear here.</p>
+      <% } %>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>

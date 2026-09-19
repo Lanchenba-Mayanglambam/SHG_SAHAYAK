@@ -1,0 +1,240 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="main-content">
+  <div class="container">
+    <%- include('../partials/flash') %>
+
+    <div class="page-header">
+      <div>
+        <div style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.25rem;">
+          Loan Record <code>#<%= loan._id.toString().slice(-6).toUpperCase() %></code>
+        </div>
+        <h1 class="page-title"><%= loan.memberId && loan.memberId.userId ? loan.memberId.userId.name : 'Member' %>'s Micro-Loan</h1>
+        <p class="page-subtitle">Purpose: <%= loan.purpose %></p>
+      </div>
+      <div>
+        <span class="badge <%= loan.status %>" style="font-size: 0.95rem; padding: 0.4rem 1rem;"><%= loan.status %></span>
+      </div>
+    </div>
+
+    <!-- Loan Metrics Breakdown -->
+    <div class="grid-cols-4">
+      <div class="stat-card">
+        <div>
+          <div class="stat-value">₹<%= loan.amountRequested.toLocaleString('en-IN') %></div>
+          <div class="stat-label">Principal Amount</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div>
+          <div class="stat-value">₹<%= (loan.totalInterest || 0).toLocaleString('en-IN') %></div>
+          <div class="stat-label">Total Interest (<%= loan.interestRate %>% p.a.)</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div>
+          <div class="stat-value" style="color: var(--primary);">₹<%= (loan.totalPayable || 0).toLocaleString('en-IN') %></div>
+          <div class="stat-label">Total Payable</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div>
+          <div class="stat-value" style="color: <%= loan.outstandingBalance > 0 ? 'var(--danger)' : 'var(--success)' %>;">
+            ₹<%= (loan.outstandingBalance || 0).toLocaleString('en-IN') %>
+          </div>
+          <div class="stat-label">Outstanding Balance</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Repayment Progress -->
+    <% if (loan.status === 'approved' || loan.status === 'closed') { %>
+      <div class="card" style="margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; font-size: 0.9rem;">
+          <div>
+            <strong>Repayment Progress:</strong>
+            <%= stats.paidCount %> of <%= instalments.length %> instalments paid
+            <% if (stats.overdueCount > 0) { %>
+              • <span style="color: var(--danger); font-weight: 700;"><%= stats.overdueCount %> Overdue</span>
+            <% } %>
+          </div>
+          <div style="font-weight: 700; color: var(--primary);">
+            ₹<%= stats.totalPaid.toLocaleString('en-IN') %> / ₹<%= loan.totalPayable.toLocaleString('en-IN') %>
+          </div>
+        </div>
+        <div class="progress-container">
+          <div class="progress-bar" style="width: <%= instalments.length > 0 ? Math.round((stats.paidCount / instalments.length) * 100) : 0 %>%;"></div>
+        </div>
+      </div>
+    <% } %>
+
+    <!-- Repayment Schedule Table -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Repayment Schedule & Instalments (<%= instalments.length %> Months)</h2>
+      </div>
+
+      <% if (instalments && instalments.length > 0) { %>
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Due Date</th>
+                <th>Amount Due</th>
+                <th>Amount Paid</th>
+                <th>Status</th>
+                <th>Paid Date</th>
+                <th>Payment Mode / Ref</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% instalments.forEach(inst => { %>
+                <tr>
+                  <td><strong>#<%= inst.instalmentNumber %></strong></td>
+                  <td><%= dayjs(inst.dueDate).format('DD MMM YYYY') %></td>
+                  <td style="font-weight: 700;">₹<%= inst.amountDue.toLocaleString('en-IN') %></td>
+                  <td style="color: var(--success); font-weight: 700;">
+                    <%= inst.amountPaid > 0 ? `₹${inst.amountPaid.toLocaleString('en-IN')}` : '-' %>
+                  </td>
+                  <td>
+                    <% if (inst.verificationStatus === 'pending') { %>
+                      <span class="badge" style="background: #fef3c7; color: #92400e; font-weight: 700;">⏳ Under Review</span>
+                    <% } else if (inst.verificationStatus === 'failed') { %>
+                      <span class="badge" style="background: #fee2e2; color: #b91c1c; font-weight: 700;">✗ Failed</span>
+                    <% } else { %>
+                      <span class="badge <%= inst.status %>"><%= inst.status %></span>
+                    <% } %>
+                  </td>
+                  <td style="font-size: 0.85rem; color: var(--text-muted);">
+                    <%= inst.paidDate ? dayjs(inst.paidDate).format('DD MMM YYYY') : '-' %>
+                  </td>
+                  <td style="font-size: 0.85rem;">
+                    <% if (inst.paymentMode === 'UPI') { %>
+                      <span class="badge" style="background: #e0e7ff; color: #3730a3; font-weight: 600;">📱 UPI</span>
+                      <% if (inst.transactionId) { %>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace; margin-top: 2px;">
+                          UTR: <%= inst.transactionId %>
+                        </div>
+                      <% } %>
+                      <% if (inst.verificationStatus === 'failed' && inst.verificationRemark) { %>
+                        <div style="font-size: 0.72rem; color: var(--danger); margin-top: 2px;">
+                          ⚠️ <%= inst.verificationRemark %>
+                        </div>
+                      <% } %>
+                    <% } else if (inst.paymentMode) { %>
+                      <span><%= inst.paymentMode %></span>
+                      <% if (inst.transactionId) { %>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace; margin-top: 2px;">
+                          Ref: <%= inst.transactionId %>
+                        </div>
+                      <% } %>
+                    <% } else { %>
+                      -
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (inst.status !== 'paid') { %>
+                      <% if (inst.verificationStatus === 'pending') { %>
+                        <div style="display: flex; gap: 0.35rem; align-items: center;">
+                          <form method="POST" action="/admin/payments/loan/<%= inst._id %>/verify" style="display: inline;">
+                            <input type="hidden" name="decision" value="approve">
+                            <button type="submit" class="btn btn-success btn-sm" title="Mark as Paid" onclick="return confirm('Confirm payment received for Instalment #<%= inst.instalmentNumber %>?');">
+                              ✓ Mark Paid
+                            </button>
+                          </form>
+                          <form method="POST" action="/admin/payments/loan/<%= inst._id %>/verify" style="display: inline;">
+                            <input type="hidden" name="decision" value="reject">
+                            <input type="hidden" name="remark" value="UTR not verified in bank account">
+                            <button type="submit" class="btn btn-danger btn-sm" title="Mark as Failed" onclick="return confirm('Mark payment as Failed for Instalment #<%= inst.instalmentNumber %>?');">
+                              ✗ Fail
+                            </button>
+                          </form>
+                        </div>
+                      <% } else { %>
+                        <button
+                          type="button"
+                          class="btn btn-primary btn-sm btn-open-repay"
+                          data-instalment-id="<%= inst._id %>"
+                          data-instalment-number="<%= inst.instalmentNumber %>"
+                          data-amount-due="<%= inst.amountDue - (inst.amountPaid || 0) %>"
+                        >
+                          Record Payment
+                        </button>
+                      <% } %>
+                    <% } else { %>
+                      <span style="color: var(--success); font-weight: 600; font-size: 0.85rem;">✓ Paid</span>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <p style="color: var(--text-muted); padding: 1.5rem 0;">No instalments generated. Loan is currently <%= loan.status %>.</p>
+      <% } %>
+    </div>
+  </div>
+</main>
+
+<!-- Repayment Dialog Modal -->
+<dialog id="repaymentDialog">
+  <div class="card-header" style="border: none; margin-bottom: 1rem; padding-bottom: 0;">
+    <h3 class="card-title">Record Instalment Repayment</h3>
+    <button type="button" id="closeRepayDialog" style="background: none; border: none; font-size: 1.25rem; cursor: pointer;">✕</button>
+  </div>
+
+  <div style="background: var(--bg-subtle); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.25rem; font-size: 0.9rem;">
+    <div><strong>Instalment:</strong> #<span id="repayInstalmentNumber"></span></div>
+    <div><strong>Amount Due:</strong> <span id="repayAmountDue" style="font-weight: 700; color: var(--primary);"></span></div>
+  </div>
+
+  <form id="repaymentForm" method="POST" action="/loans/repayment">
+    <input type="hidden" id="repayInstalmentId" name="instalmentId" value="">
+
+    <div class="form-group">
+      <label for="repayAmountInput" class="form-label">Payment Amount (₹)</label>
+      <input
+        type="number"
+        step="0.01"
+        min="1"
+        id="repayAmountInput"
+        name="amount"
+        class="form-control"
+        required
+      >
+    </div>
+
+    <div class="form-group">
+      <label for="paymentMode" class="form-label">Payment Mode</label>
+      <select id="paymentMode" name="paymentMode" class="form-select">
+        <option value="Cash">Cash (Physical deposit)</option>
+        <option value="UPI">UPI / Digital</option>
+        <option value="Bank Transfer">Bank Transfer</option>
+      </select>
+    </div>
+
+    <div class="form-group" id="adminTransactionIdGroup">
+      <label for="adminTransactionId" class="form-label">Transaction / UTR Reference (Optional for UPI/Bank)</label>
+      <input
+        type="text"
+        id="adminTransactionId"
+        name="transactionId"
+        class="form-control"
+        placeholder="e.g. 12-digit UTR or receipt number"
+      >
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+      <button type="submit" class="btn btn-primary">Submit Payment</button>
+    </div>
+  </form>
+</dialog>
+
+<%- include('../partials/footer') %>

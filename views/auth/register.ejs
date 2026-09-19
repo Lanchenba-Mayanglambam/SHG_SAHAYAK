@@ -1,0 +1,173 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="main-content">
+  <div class="container">
+    <div class="auth-wrapper">
+      <%- include('../partials/flash') %>
+
+      <div class="auth-card">
+        <div class="auth-header">
+          <h1 class="auth-title">Create an Account</h1>
+          <p class="auth-subtitle">Register as an SHG Admin or Member</p>
+        </div>
+
+        <form action="/register" method="POST" novalidate>
+          <div class="form-group">
+            <label for="name" class="form-label">Full Name</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              class="form-control"
+              placeholder="e.g. Anita Sharma"
+              value="<%= typeof formData !== 'undefined' && formData.name ? formData.name : '' %>"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="email" class="form-label">Email Address</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              class="form-control"
+              placeholder="e.g. anita@shg.org"
+              value="<%= typeof formData !== 'undefined' && formData.email ? formData.email : '' %>"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="role" class="form-label">Account Role</label>
+            <select id="role" name="role" class="form-select">
+              <option value="admin" <%= typeof formData !== 'undefined' && formData.role === 'admin' ? 'selected' : '' %>>
+                SHG Administrator (Create new SHG Group)
+              </option>
+              <option value="member" <%= typeof formData !== 'undefined' && formData.role === 'member' ? 'selected' : '' %>>
+                SHG Member (Join existing Group)
+              </option>
+            </select>
+          </div>
+
+          <!-- Admin Group Fields -->
+          <div id="adminGroupFields">
+            <div class="form-group">
+              <label for="groupName" class="form-label">SHG Group Name</label>
+              <input
+                type="text"
+                id="groupName"
+                name="groupName"
+                class="form-control"
+                placeholder="e.g. Mahila Shakti Swayam Sahayata Samuh"
+                value="<%= typeof formData !== 'undefined' && formData.groupName ? formData.groupName : '' %>"
+              >
+            </div>
+            <div class="form-group">
+              <label for="villageOrArea" class="form-label">Village / Area / District</label>
+              <input
+                type="text"
+                id="villageOrArea"
+                name="villageOrArea"
+                class="form-control"
+                placeholder="e.g. Rampur Village, Block A"
+                value="<%= typeof formData !== 'undefined' && formData.villageOrArea ? formData.villageOrArea : '' %>"
+              >
+            </div>
+          </div>
+
+          <!-- Member Group Selection -->
+          <div id="memberGroupFields" style="display: none;">
+            <div class="form-group">
+              <label for="groupId" class="form-label">Select SHG Group</label>
+              <select id="groupId" name="groupId" class="form-select">
+                <% if (typeof groups !== 'undefined' && groups.length > 0) { %>
+                  <% groups.forEach(g => { %>
+                    <option value="<%= g._id %>" <%= typeof formData !== 'undefined' && formData.groupId == g._id.toString() ? 'selected' : '' %>>
+                      <%= g.name %> <%= g.villageOrArea ? `(${g.villageOrArea})` : '' %>
+                    </option>
+                  <% }) %>
+                <% } else { %>
+                  <option value="">No groups available - Register as Admin first</option>
+                <% } %>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="password" class="form-label">Password</label>
+            <div class="password-input-wrapper">
+              <input
+                type="password"
+                id="password"
+                name="password"
+                class="form-control"
+                placeholder="At least 6 characters"
+                autocomplete="new-password"
+                required
+              >
+              <button
+                type="button"
+                class="btn-toggle-password"
+                data-target="password"
+                aria-label="Show password"
+                title="Show password"
+              >
+                <svg class="eye-open-icon" viewBox="0 0 24 24" width="20" height="20">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <svg class="eye-closed-icon" viewBox="0 0 24 24" width="20" height="20" style="display: none;">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="confirmPassword" class="form-label">Confirm Password</label>
+            <div class="password-input-wrapper">
+              <input
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                class="form-control"
+                placeholder="Re-enter password"
+                autocomplete="new-password"
+                required
+              >
+              <button
+                type="button"
+                class="btn-toggle-password"
+                data-target="confirmPassword"
+                aria-label="Show password"
+                title="Show password"
+              >
+                <svg class="eye-open-icon" viewBox="0 0 24 24" width="20" height="20">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <svg class="eye-closed-icon" viewBox="0 0 24 24" width="20" height="20" style="display: none;">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" style="margin-top: 1rem;">
+            Register Account
+          </button>
+        </form>
+
+        <div class="auth-footer">
+          Already have an account? <a href="/login">Sign in here</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>

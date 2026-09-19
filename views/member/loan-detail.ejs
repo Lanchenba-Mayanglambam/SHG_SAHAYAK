@@ -1,0 +1,399 @@
+<%- include('../partials/header') %>
+  <%- include('../partials/navbar') %>
+
+    <main class="main-content">
+      <div class="container">
+        <%- include('../partials/flash') %>
+
+          <div class="page-header">
+            <div>
+              <div
+                style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.25rem;">
+                Loan Record <code>#<%= loan._id.toString().slice(-6).toUpperCase() %></code>
+              </div>
+              <h1 class="page-title">
+                <%= loan.purpose %>
+              </h1>
+              <p class="page-subtitle">Tenure: <%= loan.tenureMonths %> Months • <%= loan.interestRate %>% p.a. Simple
+                    Interest</p>
+            </div>
+            <div>
+              <span class="badge <%= loan.status %>" style="font-size: 0.95rem; padding: 0.4rem 1rem;">
+                <%= loan.status %>
+              </span>
+            </div>
+          </div>
+
+          <!-- Loan Metrics Breakdown -->
+          <div class="grid-cols-4">
+            <div class="stat-card">
+              <div>
+                <div class="stat-value">₹<%= loan.amountRequested.toLocaleString('en-IN') %>
+                </div>
+                <div class="stat-label">Principal Amount</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div>
+                <div class="stat-value">₹<%= (loan.totalInterest || 0).toLocaleString('en-IN') %>
+                </div>
+                <div class="stat-label">Total Interest (<%= loan.interestRate %>% p.a.)</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div>
+                <div class="stat-value" style="color: var(--primary);">₹<%= (loan.totalPayable ||
+                    0).toLocaleString('en-IN') %>
+                </div>
+                <div class="stat-label">Total Amount Payable</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div>
+                <div class="stat-value"
+                  style="color: <%= loan.outstandingBalance > 0 ? 'var(--danger)' : 'var(--success)' %>;">
+                  ₹<%= (loan.outstandingBalance || 0).toLocaleString('en-IN') %>
+                </div>
+                <div class="stat-label">Remaining Balance</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Repayment Progress -->
+          <% if (loan.status==='approved' || loan.status==='closed' ) { %>
+            <div class="card" style="margin-bottom: 2rem;">
+              <div
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; font-size: 0.9rem;">
+                <div>
+                  <strong>Repayment Completion:</strong>
+                  <%= stats.paidCount %> of <%= instalments.length %> instalments paid
+                      <% if (stats.overdueCount> 0) { %>
+                        • <span style="color: var(--danger); font-weight: 700;">
+                          <%= stats.overdueCount %> Overdue Instalment(s)
+                        </span>
+                        <% } %>
+                </div>
+                <div style="font-weight: 700; color: var(--primary);">
+                  ₹<%= stats.totalPaid.toLocaleString('en-IN') %> / ₹<%= loan.totalPayable.toLocaleString('en-IN') %>
+                </div>
+              </div>
+              <div class="progress-container">
+                <div class="progress-bar"
+                  style="width: <%= instalments.length > 0 ? Math.round((stats.paidCount / instalments.length) * 100) : 0 %>%;">
+                </div>
+              </div>
+            </div>
+            <% } %>
+
+              <!-- Instalments Schedule Table -->
+              <div class="card">
+                <div class="card-header">
+                  <h2 class="card-title">Repayment Instalments Schedule</h2>
+                </div>
+
+                <% if (instalments && instalments.length> 0) { %>
+                  <div class="table-responsive">
+                    <table class="table">
+                      <thead>
+                        <tr>
+                          <th>Instalment #</th>
+                          <th>Due Date</th>
+                          <th>Amount Due</th>
+                          <th>Amount Paid</th>
+                          <th>Status</th>
+                          <th>Date Paid</th>
+                          <th>Payment Mode / Ref</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <% instalments.forEach(inst=> { %>
+                          <tr style="<%= inst.status === 'overdue' ? 'background: #fff5f5;' : '' %>">
+                            <td><strong>#<%= inst.instalmentNumber %></strong></td>
+                            <td
+                              style="<%= inst.status === 'overdue' ? 'color: var(--danger); font-weight: 700;' : '' %>">
+                              <%= dayjs(inst.dueDate).format('DD MMMM YYYY') %>
+                            </td>
+                            <td style="font-weight: 700;">₹<%= inst.amountDue.toLocaleString('en-IN') %>
+                            </td>
+                            <td style="color: var(--success); font-weight: 700;">
+                              <%= inst.amountPaid> 0 ? `₹${inst.amountPaid.toLocaleString('en-IN')}` : '-' %>
+                            </td>
+                            <td>
+                              <% if (inst.verificationStatus === 'pending') { %>
+                                <span class="badge" style="background: #fef3c7; color: #92400e; font-weight: 700;">
+                                  ⏳ Under Review
+                                </span>
+                              <% } else if (inst.verificationStatus === 'failed') { %>
+                                <span class="badge" style="background: #fee2e2; color: #b91c1c; font-weight: 700;">
+                                  ✗ Failed
+                                </span>
+                              <% } else { %>
+                                <span class="badge <%= inst.status %>">
+                                  <%= inst.status %>
+                                </span>
+                              <% } %>
+                            </td>
+                            <td style="font-size: 0.85rem; color: var(--text-muted);">
+                              <%= inst.paidDate ? dayjs(inst.paidDate).format('DD MMM YYYY') : '-' %>
+                            </td>
+                            <td style="font-size: 0.85rem;">
+                              <% if (inst.paymentMode === 'UPI') { %>
+                                <span class="badge" style="background: #e0e7ff; color: #3730a3; font-weight: 600;">📱 UPI</span>
+                                <% if (inst.transactionId) { %>
+                                  <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace; margin-top: 2px;">
+                                    UTR: <%= inst.transactionId %>
+                                  </div>
+                                <% } %>
+                                <% if (inst.verificationStatus === 'failed' && inst.verificationRemark) { %>
+                                  <div style="font-size: 0.75rem; color: var(--danger); margin-top: 2px;">
+                                    ⚠️ <%= inst.verificationRemark %>
+                                  </div>
+                                <% } %>
+                              <% } else if (inst.paymentMode) { %>
+                                <span><%= inst.paymentMode %></span>
+                                <% if (inst.transactionId) { %>
+                                  <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace; margin-top: 2px;">
+                                    Ref: <%= inst.transactionId %>
+                                  </div>
+                                <% } %>
+                              <% } else { %>
+                                -
+                              <% } %>
+                            </td>
+                            <td>
+                              <% if (inst.status !== 'paid') { %>
+                                <% if (inst.verificationStatus === 'pending') { %>
+                                  <span style="font-size: 0.8rem; color: #d97706; font-weight: 600;">⏳ Awaiting Approval</span>
+                                <% } else if (inst.verificationStatus === 'failed') { %>
+                                  <% if (group && group.isOnlinePaymentEnabled && group.upiId) { %>
+                                    <button type="button" class="btn btn-warning btn-sm btn-open-member-upi"
+                                      data-instalment-id="<%= inst._id %>"
+                                      data-instalment-number="<%= inst.instalmentNumber %>"
+                                      data-amount-due="<%= inst.amountDue - (inst.amountPaid || 0) %>"
+                                      data-due-date="<%= dayjs(inst.dueDate).format('DD MMMM YYYY') %>"
+                                      data-qr-code="<%= inst.upiQrCode || '' %>"
+                                      data-upi-uri="<%= inst.upiUri || '' %>"
+                                      style="color: #78350f; font-weight: 700;">
+                                      🔄 Resubmit UPI
+                                    </button>
+                                  <% } else { %>
+                                    <span style="font-size: 0.8rem; color: var(--text-muted);">Cash at meeting</span>
+                                  <% } %>
+                                <% } else { %>
+                                  <% if (group && group.isOnlinePaymentEnabled && group.upiId) { %>
+                                    <button type="button" class="btn btn-primary btn-sm btn-open-member-upi"
+                                      data-instalment-id="<%= inst._id %>"
+                                      data-instalment-number="<%= inst.instalmentNumber %>"
+                                      data-amount-due="<%= inst.amountDue - (inst.amountPaid || 0) %>"
+                                      data-due-date="<%= dayjs(inst.dueDate).format('DD MMMM YYYY') %>"
+                                      data-qr-code="<%= inst.upiQrCode || '' %>"
+                                      data-upi-uri="<%= inst.upiUri || '' %>">
+                                      📱 Pay via UPI
+                                    </button>
+                                  <% } else { %>
+                                    <span style="font-size: 0.8rem; color: var(--text-muted);">Cash at meeting</span>
+                                  <% } %>
+                                <% } %>
+                              <% } else { %>
+                                <span style="color: var(--success); font-weight: 600; font-size: 0.85rem;">✓ Paid</span>
+                              <% } %>
+                            </td>
+                          </tr>
+                          <% }) %>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <% if (group && group.isOnlinePaymentEnabled) { %>
+                    <div
+                      style="margin-top: 1rem; padding: 0.85rem 1.25rem; background: #f0fdf4; border-radius: var(--radius-md); font-size: 0.85rem; border: 1px solid #bbf7d0; display: flex; align-items: center; justify-content: space-between; flex-wrap: gap; gap: 0.75rem;">
+                      <div>
+                        <strong>📱 Online UPI Payments Enabled:</strong> You can pay directly using Google Pay, PhonePe,
+                        Paytm, or BHIM.
+                      </div>
+                      <div style="font-size: 0.82rem; color: #166534;">
+                        SHG UPI ID: <code><%= group.upiId %></code>
+                      </div>
+                    </div>
+                    <% } else { %>
+                      <p style="color: var(--text-muted); font-size: 0.82rem; margin-top: 1rem;">
+                        💡 Instalments are submitted in cash during monthly SHG group meetings. Your administrator will
+                        verify and record the transaction in the system.
+                      </p>
+                      <% } %>
+                        <% } else { %>
+                          <p style="color: var(--text-muted); padding: 1.5rem 0;">No repayment schedule generated yet.
+                            The loan is <%= loan.status %>.</p>
+                          <% } %>
+              </div>
+      </div>
+    </main>
+
+    <!-- Member Online UPI Payment Dialog Modal -->
+    <dialog id="memberUpiDialog" style="max-width: 500px; width: 92%;">
+      <div class="card-header" style="border: none; margin-bottom: 0.75rem; padding-bottom: 0;">
+        <h3 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+          <span>📱</span>
+          <span>Pay Loan Instalment via UPI</span>
+        </h3>
+        <button type="button" id="closeMemberUpiDialog"
+          style="background: none; border: none; font-size: 1.25rem; cursor: pointer;">✕</button>
+      </div>
+
+      <div
+        style="background: var(--bg-subtle); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+          <span style="font-weight: 600;">Instalment:</span>
+          <span style="font-weight: 700;">#<span id="memberModalInstalmentNumber"></span></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+          <span style="font-weight: 600;">Amount Due:</span>
+          <span id="memberModalAmountDue" style="font-size: 1.25rem; font-weight: 800; color: var(--primary);"></span>
+        </div>
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-muted);">
+          <span>Due Date:</span>
+          <span id="memberModalDueDate"></span>
+        </div>
+      </div>
+
+      <!-- QR Code & Account Info Box -->
+      <div
+        style="text-align: center; background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.25rem;">
+        <div id="memberModalQrContainer" style="margin-bottom: 0.75rem;">
+          <img id="memberModalQrImg" src="" alt="UPI QR Code"
+            style="width: 180px; height: 180px; display: inline-block; border: 1px solid #e2e8f0; border-radius: 8px; padding: 4px;">
+        </div>
+
+        <div style="font-size: 0.9rem; margin-bottom: 0.35rem;">
+          <strong>Payee:</strong>
+          <%= group.upiPayeeName || group.name %>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+          <span style="font-size: 0.85rem; color: var(--text-muted);">UPI ID:</span>
+          <code id="memberModalUpiIdText"
+            style="font-size: 0.95rem; font-weight: 700; background: #f1f5f9; padding: 0.2rem 0.5rem; border-radius: 4px;"><%= group.upiId %></code>
+          <button type="button" id="copyUpiIdBtn" class="btn btn-outline-primary btn-sm"
+            style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">📋 Copy</button>
+        </div>
+
+        <!-- UPI App Chooser Button and Interactive Drawer -->
+        <div style="margin-top: 0.5rem;">
+          <button type="button" id="memberModalUpiAppBtn" class="btn btn-accent btn-block"
+            style="font-size: 0.95rem; font-weight: 600; display: none; align-items: center; justify-content: center; gap: 0.5rem;">
+            <span>🚀</span>
+            <span>Open in UPI App (Choose App)</span>
+            <span id="memberUpiChevron" style="font-size: 0.75rem; transition: transform 0.2s;">▼</span>
+          </button>
+
+          <!-- App Chooser Grid -->
+          <div id="memberUpiAppChooser" class="upi-app-chooser-box"
+            style="display: none; margin-top: 0.75rem; padding: 0.85rem; background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); text-align: left;">
+            <div
+              style="font-size: 0.82rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.65rem; display: flex; align-items: center; justify-content: space-between;">
+              <span>📲 Select UPI App to Pay:</span>
+              <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Tap to open</span>
+            </div>
+
+            <div class="upi-apps-grid">
+              <button type="button" class="btn-upi-app-card" data-app="gpay" data-name="Google Pay">
+                <span class="upi-card-icon"
+                  style="background: #e8f0fe; color: #1a73e8; border: 1px solid #d2e3fc;">G</span>
+                <span class="upi-card-info">
+                  <strong class="upi-card-title">Google Pay</strong>
+                  <small class="upi-card-sub">GPay UPI</small>
+                </span>
+              </button>
+
+              <button type="button" class="btn-upi-app-card" data-app="phonepe" data-name="PhonePe">
+                <span class="upi-card-icon"
+                  style="background: #f3e8ff; color: #5f259f; border: 1px solid #e9d5ff;">Pe</span>
+                <span class="upi-card-info">
+                  <strong class="upi-card-title">PhonePe</strong>
+                  <small class="upi-card-sub">Fast UPI</small>
+                </span>
+              </button>
+
+              <button type="button" class="btn-upi-app-card" data-app="paytm" data-name="Paytm">
+                <span class="upi-card-icon"
+                  style="background: #e0f2fe; color: #002970; border: 1px solid #bae6fd;">Pay</span>
+                <span class="upi-card-info">
+                  <strong class="upi-card-title">Paytm</strong>
+                  <small class="upi-card-sub">Wallet / UPI</small>
+                </span>
+              </button>
+
+              <button type="button" class="btn-upi-app-card" data-app="bhim" data-name="BHIM UPI">
+                <span class="upi-card-icon"
+                  style="background: #ccfbf1; color: #0f766e; border: 1px solid #99f6e4;">BH</span>
+                <span class="upi-card-info">
+                  <strong class="upi-card-title">BHIM UPI</strong>
+                  <small class="upi-card-sub">Govt UPI</small>
+                </span>
+              </button>
+
+              <button type="button" class="btn-upi-app-card" data-app="whatsapp" data-name="WhatsApp Pay">
+                <span class="upi-card-icon"
+                  style="background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0;">💬</span>
+                <span class="upi-card-info">
+                  <strong class="upi-card-title">WhatsApp</strong>
+                  <small class="upi-card-sub">WhatsApp Pay</small>
+                </span>
+              </button>
+
+              <button type="button" class="btn-upi-app-card" data-app="other" data-name="Other UPI App">
+                <span class="upi-card-icon"
+                  style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">⚡</span>
+                <span class="upi-card-info">
+                  <strong class="upi-card-title">Other App</strong>
+                  <small class="upi-card-sub">Any UPI</small>
+                </span>
+              </button>
+            </div>
+
+            <div id="memberUpiStatusMsg" class="upi-status-pill" style="display: none;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Instructions -->
+      <div
+        style="font-size: 0.82rem; color: var(--text-muted); background: var(--bg-subtle); padding: 0.75rem 1rem; border-radius: var(--radius-md); margin-bottom: 1.25rem;">
+        💡 <strong>Instructions:</strong>
+        <%= group.paymentInstructions
+          || 'Scan using any UPI app and enter the 12-digit UPI UTR / Reference number below to confirm.' %>
+      </div>
+
+      <!-- Confirmation Form -->
+      <form id="memberUpiRepaymentForm" method="POST" action="/loans/repayment">
+        <input type="hidden" id="memberModalInstalmentId" name="instalmentId" value="">
+        <input type="hidden" name="paymentMode" value="UPI">
+
+        <div class="form-group">
+          <label for="memberModalAmountInput" class="form-label">Payment Amount (₹)</label>
+          <input type="number" step="0.01" min="1" id="memberModalAmountInput" name="amount" class="form-control"
+            required>
+        </div>
+
+        <div class="form-group">
+          <label for="memberModalTransactionId" class="form-label">UPI Reference / UTR Number <span
+              style="color: var(--danger);">*</span></label>
+          <input type="text" id="memberModalTransactionId" name="transactionId" class="form-control"
+            placeholder="e.g. 12-digit UTR from your payment receipt" required pattern="[\w\d-]{6,30}"
+            title="Please enter the reference or UTR number from your payment app">
+          <small class="form-text">Found in your Google Pay, PhonePe, or Paytm payment details screen as "UPI Ref /
+            UTR".</small>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+          <button type="button" id="cancelMemberUpiBtn" class="btn btn-secondary">Cancel</button>
+          <button type="submit" class="btn btn-primary">✓ Confirm & Submit Payment</button>
+        </div>
+      </form>
+    </dialog>
+
+    <%- include('../partials/footer') %>

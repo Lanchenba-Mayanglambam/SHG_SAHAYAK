@@ -1,0 +1,33 @@
+<div class="alerts-container">
+  <% if (typeof success !== 'undefined' && success && success.length > 0) { %>
+    <% success.forEach(msg => { %>
+      <div class="alert alert-success">
+        <span>✓</span>
+        <span><%= msg %></span>
+      </div>
+    <% }) %>
+  <% } %>
+
+  <% if (typeof error !== 'undefined' && error && error.length > 0) { %>
+    <% error.forEach(msg => { %>
+      <div class="alert alert-error">
+        <span>⚠</span>
+        <span><%= msg %></span>
+      </div>
+    <% }) %>
+  <% } %>
+
+  <% if (typeof errors !== 'undefined' && errors && errors.length > 0) { %>
+    <div class="alert alert-error">
+      <span>⚠</span>
+      <div>
+        <strong>Please correct the following errors:</strong>
+        <ul style="margin-top: 0.25rem; padding-left: 1.25rem;">
+          <% errors.forEach(err => { %>
+            <li><%= err.msg %></li>
+          <% }) %>
+        </ul>
+      </div>
+    </div>
+  <% } %>
+</div>

@@ -1,0 +1,123 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="main-content">
+  <div class="container">
+    <%- include('../partials/flash') %>
+
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Defaulters & Overdue Instalments</h1>
+        <p class="page-subtitle">Track overdue micro-loan payments and members requiring follow-up</p>
+      </div>
+    </div>
+
+    <% if (defaultersList && defaultersList.length > 0) { %>
+      <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-header">
+          <h2 class="card-title">Defaulters Summary (<%= defaultersList.length %> Members)</h2>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Contact</th>
+                <th>Overdue Instalments</th>
+                <th>Total Overdue (₹)</th>
+                <th>Oldest Overdue Since</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% defaultersList.forEach(d => { %>
+                <tr>
+                  <td>
+                    <strong><%= d.user ? d.user.name : 'Unknown' %></strong>
+                  </td>
+                  <td>
+                    <div><%= d.user ? d.user.email : 'N/A' %></div>
+                    <% if (d.member.phone) { %>
+                      <div style="font-size: 0.8rem; color: var(--text-muted);"><%= d.member.phone %></div>
+                    <% } %>
+                  </td>
+                  <td>
+                    <span class="badge overdue"><%= d.overdueInstalmentsCount %> Instalment(s)</span>
+                  </td>
+                  <td style="font-weight: 700; color: var(--danger); font-size: 1.05rem;">
+                    ₹<%= d.totalOverdueAmount.toLocaleString('en-IN') %>
+                  </td>
+                  <td style="color: var(--danger);">
+                    <%= dayjs(d.oldestDueDate).format('DD MMM YYYY') %>
+                  </td>
+                  <td>
+                    <% if (d.instalments && d.instalments.length > 0 && d.instalments[0].loanId) { %>
+                      <a href="/loans/<%= d.instalments[0].loanId._id %>" class="btn btn-primary btn-sm">
+                        View Loan & Repay
+                      </a>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Detailed Overdue Items Table -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">All Overdue Instalment Records (<%= overdueInstalments.length %>)</h2>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Loan ID</th>
+                <th>Instalment #</th>
+                <th>Due Date</th>
+                <th>Amount Due</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% overdueInstalments.forEach(inst => { %>
+                <tr>
+                  <td>
+                    <strong>
+                      <%= inst.loanId && inst.loanId.memberId && inst.loanId.memberId.userId ? inst.loanId.memberId.userId.name : 'Unknown' %>
+                    </strong>
+                  </td>
+                  <td><code>#<%= inst.loanId ? inst.loanId._id.toString().slice(-6).toUpperCase() : '-' %></code></td>
+                  <td>#<%= inst.instalmentNumber %></td>
+                  <td style="color: var(--danger); font-weight: 600;">
+                    <%= dayjs(inst.dueDate).format('DD MMM YYYY') %>
+                  </td>
+                  <td style="font-weight: 700;">₹<%= inst.amountDue.toLocaleString('en-IN') %></td>
+                  <td><span class="badge overdue">Overdue</span></td>
+                  <td>
+                    <% if (inst.loanId) { %>
+                      <a href="/loans/<%= inst.loanId._id %>" class="btn btn-secondary btn-sm">Collect Payment</a>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% } else { %>
+      <div class="card" style="text-align: center; padding: 3rem 1.5rem;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🎉</div>
+        <h2 style="font-size: 1.35rem; color: var(--success); font-weight: 800;">No Overdue Instalments!</h2>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">All micro-loans in this self-help group are completely up to date. Excellent repayment performance!</p>
+      </div>
+    <% } %>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>

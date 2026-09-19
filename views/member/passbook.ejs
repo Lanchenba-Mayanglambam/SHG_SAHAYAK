@@ -1,0 +1,325 @@
+<%- include('../partials/header') %>
+  <%- include('../partials/navbar') %>
+
+    <main class="main-content">
+      <div class="container">
+        <%- include('../partials/flash') %>
+
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Member Savings Passbook</h1>
+              <p class="page-subtitle">
+                <%= group.name %> • Account Holder: <strong>
+                    <%= currentUser.name %>
+                  </strong>
+              </p>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+              <% if (group && group.isOnlinePaymentEnabled && group.upiId) { %>
+                <% if (!hasContributedThisMonth) { %>
+                  <button type="button" class="btn btn-primary open-savings-upi-trigger" id="openSavingsUpiBtn">
+                    📱 <%= (currentMonthStatus === 'failed') ? '🔄 Resubmit' : 'Deposit' %> ₹<%= depositAmount %> (<%= currentMonth %>) via UPI
+                  </button>
+                <% } else if (currentMonthStatus === 'pending_verification') { %>
+                  <span class="badge" style="background: #fef3c7; color: #92400e; font-weight: 700; border: 1px solid #fde68a; padding: 0.5rem 0.85rem; font-size: 0.85rem;">
+                    ⏳ <%= currentMonth %> Deposit Under Review
+                  </span>
+                <% } else { %>
+                  <span class="badge approved" style="padding: 0.5rem 0.85rem; font-size: 0.85rem;">✓ <%= currentMonth %> Savings Deposited</span>
+                <% } %>
+              <% } %>
+                <div class="stat-card" style="padding: 0.85rem 1.5rem;">
+                  <div>
+                    <div class="stat-value" style="font-size: 1.5rem; color: var(--primary);">₹<%=
+                        totalSavings.toLocaleString('en-IN') %>
+                    </div>
+                    <div class="stat-label">Current Savings Balance</div>
+                  </div>
+                </div>
+            </div>
+          </div>
+
+          <% if (currentMonthStatus === 'failed') { %>
+            <div class="alert alert-danger" style="margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+              <div>
+                <strong>⚠️ <%= currentMonth %> Savings Deposit Rejected:</strong>
+                <%= currentMonthFailedRemark || 'The UTR provided could not be verified in bank records.' %>
+                <div style="font-size: 0.85rem; margin-top: 0.2rem; opacity: 0.9;">Please verify your payment in your UPI app and resubmit with the correct 12-digit UTR.</div>
+              </div>
+              <button type="button" class="btn btn-sm btn-primary open-savings-upi-trigger">
+                🔄 Resubmit <%= currentMonth %> Deposit
+              </button>
+            </div>
+          <% } %>
+
+          <!-- Passbook Card -->
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Chronological Contribution Ledger</h2>
+              <div style="font-size: 0.85rem; color: var(--text-muted);">
+                Member Since: <%= dayjs(member.joinDate).format('MMMM YYYY') %>
+              </div>
+            </div>
+
+            <% if (passbookEntries && passbookEntries.length> 0) { %>
+              <div class="table-responsive">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Contribution Month</th>
+                      <th>Deposit Amount</th>
+                      <th>Payment Mode / Ref</th>
+                      <th>Status</th>
+                      <th>Running Total Balance</th>
+                      <th>Recorded By</th>
+                      <th>Notes / Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% passbookEntries.forEach(entry=> { %>
+                      <tr>
+                        <td>
+                          <%= dayjs(entry.date).format('DD MMM YYYY') %>
+                        </td>
+                        <td><span class="badge closed">
+                            <%= entry.month %>
+                          </span></td>
+                        <td style="color: var(--success); font-weight: 700; font-size: 0.95rem;">
+                          +₹<%= entry.amount.toLocaleString('en-IN') %>
+                        </td>
+                        <td style="font-size: 0.85rem;">
+                          <% if (entry.paymentMode==='UPI' ) { %>
+                            <span class="badge" style="background: #e0e7ff; color: #3730a3; font-weight: 600;">📱
+                              UPI</span>
+                            <% if (entry.transactionId) { %>
+                              <div
+                                style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace; margin-top: 2px;">
+                                UTR: <%= entry.transactionId %>
+                              </div>
+                              <% } %>
+                                <% } else { %>
+                                  <span>
+                                    <%= entry.paymentMode || 'Cash' %>
+                                  </span>
+                                  <% } %>
+                        </td>
+                        <td>
+                          <% if (entry.status === 'pending_verification') { %>
+                            <span class="badge" style="background: #fef3c7; color: #92400e; font-weight: 700; border: 1px solid #fde68a;">
+                              ⏳ Under Review
+                            </span>
+                            <div style="font-size: 0.72rem; color: #b45309; margin-top: 2px;">
+                              Awaiting Verification
+                            </div>
+                          <% } else if (entry.status === 'failed') { %>
+                            <span class="badge" style="background: #fee2e2; color: #991b1b; font-weight: 700; border: 1px solid #fecaca;">
+                              ❌ Failed
+                            </span>
+                            <% if (entry.verificationRemark) { %>
+                              <div style="font-size: 0.72rem; color: #dc2626; margin-top: 2px;">
+                                <%= entry.verificationRemark %>
+                              </div>
+                            <% } %>
+                          <% } else { %>
+                            <span class="badge approved">✓ Verified</span>
+                          <% } %>
+                        </td>
+                        <td style="font-weight: 800; color: var(--primary); font-size: 1rem;">
+                          <% if (entry.status === 'pending_verification') { %>
+                            <span style="font-size: 0.8rem; color: #b45309; font-weight: 600;">⏳ Pending</span>
+                          <% } else if (entry.status === 'failed') { %>
+                            <span style="font-size: 0.82rem; color: var(--danger); font-weight: 600;">—</span>
+                          <% } else { %>
+                            ₹<%= entry.runningBalance.toLocaleString('en-IN') %>
+                          <% } %>
+                        </td>
+                        <td>
+                          <%= entry.recordedBy %>
+                        </td>
+                        <td style="color: var(--text-muted); font-size: 0.85rem;">
+                          <%= entry.notes || 'Routine Monthly Deposit' %>
+                          <% if (entry.status === 'failed') { %>
+                            <div style="margin-top: 4px;">
+                              <button type="button" class="btn btn-sm btn-outline-danger open-savings-upi-trigger" style="font-size: 0.72rem; padding: 0.2rem 0.45rem;">
+                                🔄 Resubmit UPI
+                              </button>
+                            </div>
+                          <% } %>
+                        </td>
+                      </tr>
+                      <% }) %>
+                  </tbody>
+                </table>
+              </div>
+              <% } else { %>
+                <div style="text-align: center; padding: 3rem 1.5rem; color: var(--text-muted);">
+                  <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">📖</div>
+                  <h3>No Entries Recorded Yet</h3>
+                  <p style="margin-top: 0.25rem;">Your savings deposits will be recorded by the SHG administrator or
+                    submitted online via UPI.</p>
+                </div>
+                <% } %>
+          </div>
+      </div>
+    </main>
+
+    <!-- Savings UPI Deposit Dialog Modal -->
+    <% if (group && group.isOnlinePaymentEnabled && group.upiId) { %>
+      <dialog id="savingsUpiDialog" style="max-width: 500px; width: 92%;">
+        <div class="card-header" style="border: none; margin-bottom: 0.75rem; padding-bottom: 0;">
+          <h3 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+            <span>📱</span>
+            <span>Deposit Monthly Savings via UPI</span>
+          </h3>
+          <button type="button" id="closeSavingsUpiDialog"
+            style="background: none; border: none; font-size: 1.25rem; cursor: pointer;">✕</button>
+        </div>
+
+        <div
+          style="background: var(--bg-subtle); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+            <span style="font-weight: 600;">Contribution Month:</span>
+            <span style="font-weight: 700;">
+              <%= currentMonth %>
+            </span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 600;">Monthly Corpus Contribution:</span>
+            <span style="font-size: 1.25rem; font-weight: 800; color: var(--primary);">₹<%= depositAmount %></span>
+          </div>
+        </div>
+
+        <div
+          style="text-align: center; background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.25rem;">
+          <% if (savingsUpiQrCode) { %>
+            <div style="margin-bottom: 0.75rem;">
+              <img src="<%= savingsUpiQrCode %>" alt="Savings UPI QR Code"
+                style="width: 180px; height: 180px; display: inline-block; border: 1px solid #e2e8f0; border-radius: 8px; padding: 4px;">
+            </div>
+            <% } %>
+              <div style="font-size: 0.9rem; margin-bottom: 0.35rem;">
+                <strong>Payee:</strong>
+                <%= group.upiPayeeName || group.name %>
+              </div>
+              <div
+                style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                <span style="font-size: 0.85rem; color: var(--text-muted);">UPI ID:</span>
+                <code id="savingsModalUpiIdText"
+                  style="font-size: 0.95rem; font-weight: 700; background: #f1f5f9; padding: 0.2rem 0.5rem; border-radius: 4px;"><%= group.upiId %></code>
+                <button type="button" id="copySavingsUpiIdBtn" class="btn btn-outline-primary btn-sm"
+                  style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">📋 Copy</button>
+              </div>
+              <% if (savingsUpiUri) { %>
+                <!-- UPI App Chooser Button and Interactive Drawer -->
+                <div style="margin-top: 0.5rem;">
+                  <button type="button" id="savingsModalUpiAppBtn" class="btn btn-accent btn-block"
+                    style="font-size: 0.95rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.5rem;"
+                    data-upi-uri="<%= savingsUpiUri %>">
+                    <span>🚀</span>
+                    <span>Open in UPI App (Choose App)</span>
+                    <span id="savingsUpiChevron" style="font-size: 0.75rem; transition: transform 0.2s;">▼</span>
+                  </button>
+
+                  <!-- App Chooser Grid -->
+                  <div id="savingsUpiAppChooser" class="upi-app-chooser-box"
+                    style="display: none; margin-top: 0.75rem; padding: 0.85rem; background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); text-align: left;">
+                    <div
+                      style="font-size: 0.82rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.65rem; display: flex; align-items: center; justify-content: space-between;">
+                      <span>📲 Select UPI App to Pay:</span>
+                      <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Tap to
+                        open</span>
+                    </div>
+
+                    <div class="upi-apps-grid">
+                      <button type="button" class="btn-upi-app-card" data-app="gpay" data-name="Google Pay">
+                        <span class="upi-card-icon"
+                          style="background: #e8f0fe; color: #1a73e8; border: 1px solid #d2e3fc;">G</span>
+                        <span class="upi-card-info">
+                          <strong class="upi-card-title">Google Pay</strong>
+                          <small class="upi-card-sub">GPay UPI</small>
+                        </span>
+                      </button>
+
+                      <button type="button" class="btn-upi-app-card" data-app="phonepe" data-name="PhonePe">
+                        <span class="upi-card-icon"
+                          style="background: #f3e8ff; color: #5f259f; border: 1px solid #e9d5ff;">Pe</span>
+                        <span class="upi-card-info">
+                          <strong class="upi-card-title">PhonePe</strong>
+                          <small class="upi-card-sub">Fast UPI</small>
+                        </span>
+                      </button>
+
+                      <button type="button" class="btn-upi-app-card" data-app="paytm" data-name="Paytm">
+                        <span class="upi-card-icon"
+                          style="background: #e0f2fe; color: #002970; border: 1px solid #bae6fd;">Pay</span>
+                        <span class="upi-card-info">
+                          <strong class="upi-card-title">Paytm</strong>
+                          <small class="upi-card-sub">Wallet / UPI</small>
+                        </span>
+                      </button>
+
+                      <button type="button" class="btn-upi-app-card" data-app="bhim" data-name="BHIM UPI">
+                        <span class="upi-card-icon"
+                          style="background: #ccfbf1; color: #0f766e; border: 1px solid #99f6e4;">BH</span>
+                        <span class="upi-card-info">
+                          <strong class="upi-card-title">BHIM UPI</strong>
+                          <small class="upi-card-sub">Govt UPI</small>
+                        </span>
+                      </button>
+
+                      <button type="button" class="btn-upi-app-card" data-app="whatsapp" data-name="WhatsApp Pay">
+                        <span class="upi-card-icon"
+                          style="background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0;">💬</span>
+                        <span class="upi-card-info">
+                          <strong class="upi-card-title">WhatsApp</strong>
+                          <small class="upi-card-sub">WhatsApp Pay</small>
+                        </span>
+                      </button>
+
+                      <button type="button" class="btn-upi-app-card" data-app="other" data-name="Other UPI App">
+                        <span class="upi-card-icon"
+                          style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">⚡</span>
+                        <span class="upi-card-info">
+                          <strong class="upi-card-title">Other App</strong>
+                          <small class="upi-card-sub">Any UPI</small>
+                        </span>
+                      </button>
+                    </div>
+
+                    <div id="savingsUpiStatusMsg" class="upi-status-pill" style="display: none;"></div>
+                  </div>
+                </div>
+                <% } %>
+        </div>
+
+        <div
+          style="font-size: 0.82rem; color: var(--text-muted); background: var(--bg-subtle); padding: 0.75rem 1rem; border-radius: var(--radius-md); margin-bottom: 1.25rem;">
+          💡 <strong>Instructions:</strong>
+          <%= group.paymentInstructions
+            || 'Scan using any UPI app and enter the 12-digit UPI UTR / Reference number below to confirm.' %>
+        </div>
+
+        <form method="POST" action="/member/savings/upi">
+          <input type="hidden" name="month" value="<%= currentMonth %>">
+          <input type="hidden" name="amount" value="<%= depositAmount %>">
+
+          <div class="form-group">
+            <label for="savingsTransactionId" class="form-label">UPI Reference / UTR Number <span
+                style="color: var(--danger);">*</span></label>
+            <input type="text" id="savingsTransactionId" name="transactionId" class="form-control"
+              placeholder="e.g. 12-digit UTR from your payment app" required pattern="[\w\d-]{6,30}"
+              title="Please enter the reference or UTR number from your payment app">
+            <small class="form-text">Found in Google Pay, PhonePe, or Paytm payment details screen as "UPI Ref /
+              UTR".</small>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+            <button type="button" id="cancelSavingsUpiBtn" class="btn btn-secondary">Cancel</button>
+            <button type="submit" class="btn btn-primary">✓ Confirm & Record Deposit</button>
+          </div>
+        </form>
+      </dialog>
+      <% } %>
+
+        <%- include('../partials/footer') %>

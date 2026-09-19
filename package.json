@@ -1,0 +1,45 @@
+{
+  "name": "shg-savings-microloan-tracker",
+  "version": "1.0.0",
+  "description": "Self-Help Group (SHG) Savings & Micro-Loan Tracker built with MVC Architecture",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "seed": "node utils/seed.js",
+    "test": "node tests/loanCalculator.test.js && node tests/upiChooser.test.js && node tests/integration.test.js && node tests/httpIntegration.test.js"
+  },
+  "keywords": [
+    "shg",
+    "self-help-group",
+    "microfinance",
+    "savings",
+    "microloans",
+    "mvc",
+    "express",
+    "mongoose"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "connect-flash": "^0.1.1",
+    "connect-mongo": "^5.1.0",
+    "dayjs": "^1.11.19",
+    "dotenv": "^17.3.1",
+    "ejs": "^3.1.10",
+    "express": "^4.22.3",
+    "express-session": "^1.18.2",
+    "express-validator": "^7.2.1",
+    "method-override": "^3.0.0",
+    "mongoose": "^8.13.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  },
+  "directories": {
+    "test": "tests"
+  },
+  "type": "commonjs"
+}

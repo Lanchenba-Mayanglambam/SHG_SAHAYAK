@@ -1,0 +1,154 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="main-content">
+  <div class="container">
+    <%- include('../partials/flash') %>
+
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Micro-Loan Applications & Approvals</h1>
+        <p class="page-subtitle">Review member loan requests, disburse funds, and monitor repayment schedules</p>
+      </div>
+    </div>
+
+    <!-- Filter Navigation Tabs -->
+    <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+      <a href="/loans/admin/list?status=all" class="btn btn-sm <%= currentFilter === 'all' ? 'btn-primary' : 'btn-secondary' %>">All Loans</a>
+      <a href="/loans/admin/list?status=pending" class="btn btn-sm <%= currentFilter === 'pending' ? 'btn-primary' : 'btn-secondary' %>">Pending Approval</a>
+      <a href="/loans/admin/list?status=approved" class="btn btn-sm <%= currentFilter === 'approved' ? 'btn-primary' : 'btn-secondary' %>">Active / Approved</a>
+      <a href="/loans/admin/list?status=closed" class="btn btn-sm <%= currentFilter === 'closed' ? 'btn-primary' : 'btn-secondary' %>">Closed / Paid Off</a>
+      <a href="/loans/admin/list?status=rejected" class="btn btn-sm <%= currentFilter === 'rejected' ? 'btn-primary' : 'btn-secondary' %>">Rejected</a>
+    </div>
+
+    <div class="card">
+      <% if (loans && loans.length > 0) { %>
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Loan ID</th>
+                <th>Member</th>
+                <th>Amount</th>
+                <th>Purpose</th>
+                <th>Tenure</th>
+                <th>Total Payable</th>
+                <th>Balance</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% loans.forEach(loan => { %>
+                <tr>
+                  <td><code>#<%= loan._id.toString().slice(-6).toUpperCase() %></code></td>
+                  <td><strong><%= loan.memberId && loan.memberId.userId ? loan.memberId.userId.name : 'Unknown' %></strong></td>
+                  <td>₹<%= loan.amountRequested.toLocaleString('en-IN') %></td>
+                  <td><%= loan.purpose %></td>
+                  <td><%= loan.tenureMonths %> mo</td>
+                  <td>
+                    <%= loan.status !== 'pending' && loan.status !== 'rejected' ? `₹${loan.totalPayable.toLocaleString('en-IN')}` : '-' %>
+                  </td>
+                  <td style="font-weight: 700; color: <%= loan.outstandingBalance > 0 ? 'var(--danger)' : 'var(--success)' %>;">
+                    <%= loan.status !== 'pending' && loan.status !== 'rejected' ? `₹${loan.outstandingBalance.toLocaleString('en-IN')}` : '-' %>
+                  </td>
+                  <td>
+                    <span class="badge <%= loan.status %>"><%= loan.status %></span>
+                  </td>
+                  <td>
+                    <% if (loan.status === 'pending') { %>
+                      <button
+                        type="button"
+                        class="btn btn-accent btn-sm btn-open-decision"
+                        data-loan-id="<%= loan._id %>"
+                        data-member-name="<%= loan.memberId && loan.memberId.userId ? loan.memberId.userId.name : 'Member' %>"
+                        data-amount="<%= loan.amountRequested %>"
+                        data-tenure="<%= loan.tenureMonths %>"
+                        data-rate="<%= defaultInterestRate %>"
+                      >
+                        Review & Decide
+                      </button>
+                    <% } else { %>
+                      <a href="/loans/<%= loan._id %>" class="btn btn-secondary btn-sm">View Schedule</a>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <p style="color: var(--text-muted); text-align: center; padding: 2rem 0;">No loans found matching the filter "<%= currentFilter %>".</p>
+      <% } %>
+    </div>
+  </div>
+</main>
+
+<!-- Decision Modal Dialog -->
+<dialog id="decisionDialog">
+  <div class="card-header" style="margin-bottom: 1rem; border: none; padding-bottom: 0;">
+    <h3 class="card-title">Review Loan Application</h3>
+    <button type="button" id="closeDecisionDialog" style="background: none; border: none; font-size: 1.25rem; cursor: pointer;">✕</button>
+  </div>
+
+  <div style="background: var(--bg-subtle); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.25rem; font-size: 0.9rem;">
+    <div><strong>Applicant:</strong> <span id="modalMemberName"></span></div>
+    <div><strong>Requested Amount:</strong> <span id="modalLoanAmount"></span></div>
+    <div><strong>Tenure:</strong> <span id="modalTenure"></span></div>
+  </div>
+
+  <form id="decisionForm" method="POST" action="">
+    <div class="form-group">
+      <label class="form-label">Decision</label>
+      <div style="display: flex; gap: 1.5rem; margin-top: 0.25rem;">
+        <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+          <input type="radio" name="decision" value="approved" checked>
+          <strong style="color: var(--success);">Approve Loan</strong>
+        </label>
+        <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+          <input type="radio" name="decision" value="rejected">
+          <strong style="color: var(--danger);">Reject Application</strong>
+        </label>
+      </div>
+    </div>
+
+    <!-- Approval details -->
+    <div id="approvalDetailsBox">
+      <div class="form-group">
+        <label for="modalRateInput" class="form-label">Annual Interest Rate (%)</label>
+        <input
+          type="number"
+          step="0.1"
+          min="0"
+          max="100"
+          id="modalRateInput"
+          name="interestRate"
+          class="form-control"
+          value="<%= defaultInterestRate %>"
+          required
+        >
+        <small class="form-text">Simple interest rate per annum. Approving will automatically compute interest and generate monthly instalments.</small>
+      </div>
+    </div>
+
+    <!-- Rejection details -->
+    <div id="rejectionReasonBox" style="display: none;">
+      <div class="form-group">
+        <label for="rejectionReason" class="form-label">Reason for Rejection</label>
+        <textarea
+          id="rejectionReason"
+          name="rejectionReason"
+          class="form-control"
+          rows="3"
+          placeholder="e.g. Insufficient savings history or group fund shortage"
+        ></textarea>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+      <button type="submit" class="btn btn-primary">Confirm Decision</button>
+    </div>
+  </form>
+</dialog>
+
+<%- include('../partials/footer') %>

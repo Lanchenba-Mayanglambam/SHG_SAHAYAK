@@ -1,0 +1,172 @@
+<%- include('../partials/header') %>
+<%- include('../partials/navbar') %>
+
+<main class="main-content">
+  <div class="container">
+    <%- include('../partials/flash') %>
+
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Savings Management</h1>
+        <p class="page-subtitle">Record and audit monthly member savings contributions</p>
+      </div>
+      <div class="stat-card" style="padding: 0.85rem 1.5rem;">
+        <div>
+          <div class="stat-value" style="font-size: 1.5rem; color: var(--primary);">₹<%= totalGroupSavings.toLocaleString('en-IN') %></div>
+          <div class="stat-label">Total Group Corpus</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Record Contribution Form -->
+    <div class="card" style="margin-bottom: 2rem;">
+      <div class="card-header">
+        <h2 class="card-title">Record Member Savings Contribution</h2>
+      </div>
+
+      <form action="/savings" method="POST" novalidate>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem;">
+          <div class="form-group">
+            <label for="memberId" class="form-label">Select Member</label>
+            <select id="memberId" name="memberId" class="form-select" required>
+              <option value="">-- Choose Member --</option>
+              <% if (members && members.length > 0) { %>
+                <% members.forEach(m => { %>
+                  <option value="<%= m._id %>" <%= typeof formData !== 'undefined' && formData.memberId == m._id.toString() ? 'selected' : '' %>>
+                    <%= m.userId ? m.userId.name : 'Unknown' %> (Current Total: ₹<%= (m.totalSavings || 0).toLocaleString('en-IN') %>)
+                  </option>
+                <% }) %>
+              <% } %>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="month" class="form-label">Contribution Month (YYYY-MM)</label>
+            <input
+              type="month"
+              id="month"
+              name="month"
+              class="form-control"
+              value="<%= typeof formData !== 'undefined' && formData.month ? formData.month : currentMonth %>"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="amount" class="form-label">Amount (₹)</label>
+            <input
+              type="number"
+              min="1"
+              step="10"
+              id="amount"
+              name="amount"
+              class="form-control"
+              value="<%= typeof formData !== 'undefined' && formData.amount ? formData.amount : (group.monthlyContribution || 500) %>"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="notes" class="form-label">Notes / Receipt # (Optional)</label>
+            <input
+              type="text"
+              id="notes"
+              name="notes"
+              class="form-control"
+              placeholder="e.g. Paid in cash at weekly meeting"
+              value="<%= typeof formData !== 'undefined' && formData.notes ? formData.notes : '' %>"
+            >
+          </div>
+        </div>
+
+        <div style="margin-top: 0.5rem; text-align: right;">
+          <button type="submit" class="btn btn-primary">
+            ✓ Confirm & Record Contribution
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Grid: Cumulative Savings per Member & Recent Ledger -->
+    <div class="grid-cols-2">
+      <!-- Member Cumulative Savings -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Member Cumulative Savings</h2>
+        </div>
+        <% if (memberSavingsSummary && memberSavingsSummary.length > 0) { %>
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Status</th>
+                  <th>Cumulative Savings</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% memberSavingsSummary.forEach(m => { %>
+                  <tr>
+                    <td><strong><%= m.userId ? m.userId.name : 'Unknown' %></strong></td>
+                    <td><span class="badge <%= m.status %>"><%= m.status %></span></td>
+                    <td style="font-weight: 700; color: var(--primary);">
+                      ₹<%= (m.totalSavings || 0).toLocaleString('en-IN') %>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <p style="color: var(--text-muted); padding: 1rem 0;">No member accounts found.</p>
+        <% } %>
+      </div>
+
+      <!-- Transaction Log -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Savings Transaction History</h2>
+        </div>
+        <% if (entries && entries.length > 0) { %>
+          <div class="table-responsive">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Month</th>
+                  <th>Amount</th>
+                  <th>Mode / Ref</th>
+                  <th>Recorded On</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% entries.forEach(e => { %>
+                  <tr>
+                    <td><strong><%= e.memberId && e.memberId.userId ? e.memberId.userId.name : 'Unknown' %></strong></td>
+                    <td><span class="badge closed"><%= e.month %></span></td>
+                    <td style="color: var(--success); font-weight: 700;">+₹<%= e.amount.toLocaleString('en-IN') %></td>
+                    <td>
+                      <% if (e.paymentMode === 'UPI') { %>
+                        <span class="badge" style="background: #e0e7ff; color: #3730a3; font-size: 0.75rem;">📱 UPI</span>
+                        <% if (e.transactionId) { %>
+                          <div style="font-size: 0.7rem; color: var(--text-muted); font-family: monospace;">UTR: <%= e.transactionId %></div>
+                        <% } %>
+                      <% } else { %>
+                        <span style="font-size: 0.8rem;"><%= e.paymentMode || 'Cash' %></span>
+                      <% } %>
+                    </td>
+                    <td style="font-size: 0.8rem; color: var(--text-muted);"><%= dayjs(e.date).format('DD MMM YYYY') %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <p style="color: var(--text-muted); padding: 1rem 0;">No savings transactions recorded yet.</p>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>
